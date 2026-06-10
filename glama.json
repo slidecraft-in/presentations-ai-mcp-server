@@ -2,5 +2,13 @@
   "$schema": "https://glama.ai/mcp/schemas/server.json",
   "maintainers": [
     "PankajDeck"
-  ]
+  ],
+  "config": {
+    "api_key": {
+      "type": "string",
+      "description": "Your Presentations.AI API key. Get one at https://presentations.ai/dashboard.",
+      "required": true,
+      "secret": true
+    }
+  }
 }
