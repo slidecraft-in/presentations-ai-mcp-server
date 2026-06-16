@@ -1,5 +1,7 @@
 # Presentations.AI MCP Server
 
+[![smithery badge](https://smithery.ai/badge/presentations/presentations-ai)](https://smithery.ai/servers/presentations/presentations-ai)
+
 Official Model Context Protocol server for [Presentations.AI](https://presentations.ai).
 Create designed slide decks from a topic, text, or document via any MCP-compatible client.
 
