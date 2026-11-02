@@ -11,4 +11,4 @@ ENV NODE_ENV=production
 
 USER node
 
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

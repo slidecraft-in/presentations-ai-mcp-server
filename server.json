@@ -1,9 +1,22 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "ai.presentations/presentations-ai",
-  "description": "Presentations.AI MCP server — create designed slide decks from a topic, text, or document.",
-  "version": "1.0.0",
+  "title": "Presentations.AI",
+  "description": "Create designed slide decks from a prompt, notes, or an outline, then export them or share a link.",
+  "version": "1.1.0",
   "websiteUrl": "https://presentations.ai",
+  "icons": [
+    {
+      "src": "https://docs.presentations.ai/icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    },
+    {
+      "src": "https://docs.presentations.ai/apple-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["180x180"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/slidecraft-in/presentations-ai-mcp-server",
     "source": "github"

@@ -1,36 +1,32 @@
-# Connect from Claude Desktop / Claude.ai
+# Connect from Claude (claude.ai and Claude Desktop)
 
-Presentations.AI is available in Claude.ai and Claude Desktop as a Connector.
+## Free, Pro, Max, and Ultra plans
 
-## Claude.ai (web)
-
-1. Open **Settings → Connectors** at [claude.ai](https://claude.ai).
-2. Click **Add custom connector**.
-3. Enter the server URL:
+1. In [claude.ai](https://claude.ai) or Claude Desktop, go to **Customize → Connectors**.
+2. Click **+ Add**, then **Add custom connector**.
+3. Enter a name (`Presentations.AI`) and the server URL:
    ```
    https://api.presentations.ai/mcp
    ```
-4. Click **Connect** — a browser tab opens for Presentations.AI sign-in.
-5. After authorization, the 5 tools become available in any chat.
+4. Click **Continue**, review the detected sign-in settings, and click **Add**.
+5. Click **Connect** and sign in to Presentations.AI.
 
-> Presentations.AI is also listed in the official Claude Connectors Directory
-> (review pending) so it can be added in one click without entering the URL.
+Free plans can add one custom connector.
 
-## Claude Desktop
+## Team and Enterprise plans
 
-Add the connector via Settings → Connectors → Add custom connector with the
-same URL above. OAuth completes in your default browser.
+An Owner adds the connector once under **Organization settings → Connectors**: click
+**Add**, choose **Custom → Web**, and enter the name and URL above. Each member then goes to
+**Customize → Connectors**, finds Presentations.AI, and clicks **Connect**.
 
-## Tools
+Turn the connector on in a chat from the **+** button, under **Connectors**. The tools are
+listed in the [README](../../README.md#tools).
 
-| Tool | Purpose |
-|---|---|
-| `create_presentation_from_topic` | Full deck from a topic |
-| `create_single_slide` | One designed slide on a topic |
-| `create_presentation_from_content` | Deck from raw text |
-| `create_presentation_from_file` | Deck from a source file (≤ 5 MB) |
-| `check_job_status` | Poll an async job |
+## Reference
+
+- Claude Help Center: https://support.claude.com/en/articles/11175166-getting-started-with-custom-connectors-using-remote-mcp
 
 ## Related
 
-- [presentations-ai-skills](https://github.com/slidecraft-in/presentations-ai-skills) — Claude Code skill bundle for richer in-CLI guidance.
+- [Claude Code](claude-code.md)
+- [presentations-ai-skills](https://github.com/slidecraft-in/presentations-ai-skills): the `create-presentation` and `manage-presentations` Agent Skills

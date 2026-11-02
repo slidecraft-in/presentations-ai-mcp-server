@@ -1,9 +1,6 @@
 # Connect from Cursor
 
-Cursor supports remote MCP servers via `~/.cursor/mcp.json` (or per-workspace
-`.cursor/mcp.json`).
-
-## Configuration
+Add the server to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
 
 ```json
 {
@@ -15,18 +12,24 @@ Cursor supports remote MCP servers via `~/.cursor/mcp.json` (or per-workspace
 }
 ```
 
-Save the file and restart Cursor. On first use, Cursor opens a browser for
-Presentations.AI OAuth sign-in.
+Cursor signs in with OAuth and registers itself with the server. Complete the
+Presentations.AI sign-in when Cursor asks.
 
-## Tools available
+## With an API key
 
-- `create_presentation_from_topic`
-- `create_single_slide`
-- `create_presentation_from_content`
-- `create_presentation_from_file` (≤ 5 MB)
-- `check_job_status`
+```json
+{
+  "mcpServers": {
+    "presentations-ai": {
+      "url": "https://api.presentations.ai/mcp",
+      "headers": { "Authorization": "Bearer pai_live_..." }
+    }
+  }
+}
+```
+
+The tools are listed in the [README](../../README.md#tools).
 
 ## Reference
 
-- Cursor MCP docs: https://docs.cursor.com/context/model-context-protocol
-- Presentations.AI API reference: https://console.presentations.ai/apiref/docs/
+- Cursor MCP docs: https://cursor.com/docs/mcp

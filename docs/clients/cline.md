@@ -1,36 +1,38 @@
-# Connect from Cline (VS Code)
+# Connect from Cline
 
-Cline supports remote MCP servers via its MCP settings panel.
+## Cline CLI
 
-## Configuration
+Run `cline mcp`, choose **Add server**, and enter the URL with the Streamable HTTP transport:
 
-1. Open the **Cline** sidebar in VS Code.
-2. Click the MCP servers icon → **Edit MCP Settings**.
+```
+https://api.presentations.ai/mcp
+```
+
+Then choose **Authorize OAuth** and sign in to Presentations.AI in the browser.
+
+## Cline extension, with an API key
+
+1. In the **Cline** panel, click the **MCP Servers** icon in the top toolbar.
+2. Open the **Configure** tab and click **Configure MCP Servers**.
 3. Add an entry under `mcpServers`:
 
 ```json
 {
   "mcpServers": {
     "presentations-ai": {
+      "type": "streamableHttp",
       "url": "https://api.presentations.ai/mcp",
-      "type": "streamableHttp"
+      "headers": { "Authorization": "Bearer pai_live_..." }
     }
   }
 }
 ```
 
-4. Save. Cline reconnects and opens a browser for Presentations.AI OAuth on
-   first tool call.
+Keep `"type": "streamableHttp"`: without it Cline falls back to the legacy SSE transport.
+Create the API key at [api.presentations.ai](https://api.presentations.ai/#/apikeys).
 
-## Tools available
-
-- `create_presentation_from_topic`
-- `create_single_slide`
-- `create_presentation_from_content`
-- `create_presentation_from_file` (≤ 5 MB)
-- `check_job_status`
+The tools are listed in the [README](../../README.md#tools).
 
 ## Reference
 
-- Cline MCP docs: https://docs.cline.bot/mcp-servers/configuring-mcp-servers
-- Presentations.AI API reference: https://console.presentations.ai/apiref/docs/
+- Cline MCP docs: https://docs.cline.bot/mcp/mcp-overview

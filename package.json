@@ -1,17 +1,17 @@
 {
   "name": "presentations-ai-mcp-server",
-  "version": "1.0.0",
-  "description": "Glama-deployable stdio MCP wrapper for the Presentations.AI hosted MCP endpoint.",
+  "version": "1.1.0",
+  "description": "Stdio MCP wrapper for the hosted Presentations.AI MCP server.",
   "type": "module",
   "private": true,
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "snapshot": "node scripts/snapshot.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^4.1.12"
+    "@modelcontextprotocol/sdk": "^1.32.2"
   }
 }

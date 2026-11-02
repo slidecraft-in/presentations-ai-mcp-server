@@ -1,42 +1,50 @@
 # Connect from Gemini CLI
 
-Use the official extension — one command installs the manifest and wires up
-the MCP server.
+## Extension
 
-## One-line install
-
-```
+```bash
 gemini extensions install https://github.com/slidecraft-in/presentations-ai-gemini-extension
 ```
 
-On first connect, Gemini CLI opens a browser for Presentations.AI OAuth
-sign-in (PKCE + Dynamic Client Registration; no API key needed).
+The extension adds the server and two skills, `create-presentation` and
+`manage-presentations`.
 
 ## Manual configuration
 
-If you prefer to edit `~/.gemini/settings.json` directly:
+```bash
+gemini mcp add --transport http presentations-ai https://api.presentations.ai/mcp
+```
+
+Or edit `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "presentations-ai": {
+      "httpUrl": "https://api.presentations.ai/mcp"
+    }
+  }
+}
+```
+
+On first connect, Gemini CLI finds the sign-in endpoints, registers itself, and opens a
+browser for Presentations.AI sign-in.
+
+## With an API key
 
 ```json
 {
   "mcpServers": {
     "presentations-ai": {
       "httpUrl": "https://api.presentations.ai/mcp",
-      "timeout": 120000
+      "headers": { "Authorization": "Bearer pai_live_..." }
     }
   }
 }
 ```
 
-## Tools available
-
-- `create_presentation_from_topic`
-- `create_single_slide`
-- `create_presentation_from_content`
-- `create_presentation_from_file` (≤ 5 MB)
-- `check_job_status`
+The tools are listed in the [README](../../README.md#tools).
 
 ## Reference
 
-- Extension repo: https://github.com/slidecraft-in/presentations-ai-gemini-extension
 - Gemini CLI MCP docs: https://geminicli.com/docs/tools/mcp-server/
-- Presentations.AI API reference: https://console.presentations.ai/apiref/docs/

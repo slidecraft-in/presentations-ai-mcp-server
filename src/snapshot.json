@@ -1,0 +1,3232 @@
+{
+  "instructions": "Presentations.AI for Business creates finished, designed slide decks (PPTX, PDF, or slide images) from a prompt, pasted text, or an outline.\n\nWhen to use it: the user asks for a presentation, deck, slides, or a pitch, or asks to turn their text into slides. If they share a report, notes, or data without asking for slides, you can suggest a deck, but create one only after they agree: each deck spends credits from their workspace.\n\nCreating a deck:\n- `create_presentation` — a prompt, inline text sources, or an outline becomes a finished deck.\n  Pass source material as `{\"type\": \"text\", \"content\": ...}` entries in `deck.sources`.\n- `get_task` — poll the returned task_id until COMPLETED; pass wait_time (≤60s) and repeat.\n  A typical deck takes a few minutes.\n- `get_export` — a download URL for the file. It expires after 15 minutes; call again for a fresh one.\n- `share_deck` — a public link anyone can open; create one only when the user asks for a link or to share the deck.\n\nTo review the structure first, call `create_outline` (it bills its slides, separately from the deck), edit the returned outline, and pass it as `deck.outline` to `create_presentation`. Find a brand with `search_brand_kits` and pass its id as `deck.brand_kit_id`. `whoami` shows the connected account, its plan, and its credit balance.\n\nManage existing work with `list_decks`, `get_deck`, `list_projects`, `patch_deck` (rename, move, visibility, content version), `delete_deck`, and `create_grant` (share with a person by email).\n\nConventions:\n- All ids are UUIDs; pass ids from earlier results verbatim.\n- List tools take page/limit (1-based) and return {data, page, limit, total}.\n- Generation runs in the background: poll `get_task` rather than waiting on one call.\n",
+  "tools": [
+    {
+      "name": "whoami",
+      "title": "Whoami",
+      "description": "Show the connected account's email, workspace, role, plan, and credit balance.\n\nUse it when the user asks which account is connected, its plan, or its credits left.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "outputSchema": {
+        "description": "The connected account, its workspace, role and plan, and the credit balance.",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "workspace_name": {
+            "type": "string"
+          },
+          "workspace_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "description": "The workspace's plan; it decides which features are available.",
+            "type": "string"
+          },
+          "credits_balance": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "workspace_name",
+          "workspace_role",
+          "plan",
+          "credits_balance"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "create_presentation",
+      "title": "Create Presentation",
+      "description": "Create a finished, designed presentation from a prompt, text, or an outline.\n\nUse it when the user asks for a presentation, deck, slides, a pitch, or a\nPowerPoint. The deck is saved in the user's Presentations.AI workspace and can\nbe exported as PPTX, PDF or slide images, or shared by link.\n\n`deck` takes the same fields as `POST /decks`: e.g. `prompt`, `sources`\n(`{\"type\": \"text\", \"content\": ...}`), `slide_count`, `audience`,\n`level_of_detail`, `deck_purpose`, `brand_kit_id` (find one with\n`search_brand_kits`), or an edited `outline` from `create_outline`.\nRetrying an identical call returns the same deck; pass a new `request_id` to\ngenerate another copy.\n\nGeneration spends credits and takes a few minutes in the background: poll\n`task_id` with `get_task`, then fetch the file with `get_export`, or a public\nlink with `share_deck` when the user asks for one.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deck": {
+            "additionalProperties": false,
+            "description": "`POST /decks` input; the outline schema is enforced on submit, not spelled out here.",
+            "oneOf": [
+              {
+                "anyOf": [
+                  {
+                    "required": [
+                      "deck_title"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "prompt"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "sources"
+                    ]
+                  }
+                ],
+                "not": {
+                  "required": [
+                    "outline"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "prompt"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "sources"
+                      ]
+                    }
+                  ]
+                },
+                "properties": {
+                  "outline": {
+                    "not": {
+                      "type": "null"
+                    }
+                  }
+                },
+                "required": [
+                  "outline"
+                ]
+              }
+            ],
+            "properties": {
+              "prompt": {
+                "anyOf": [
+                  {
+                    "maxLength": 200000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Topic and instructions for the presentation, or pasted content to build from."
+              },
+              "sources": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "description": "Inline factual source material supplied directly in the request.",
+                          "properties": {
+                            "type": {
+                              "const": "text",
+                              "description": "Source kind discriminator.",
+                              "type": "string"
+                            },
+                            "content": {
+                              "description": "Factual material to build from; all text sources together are capped at 200,000 characters.",
+                              "maxLength": 200000,
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "content"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "description": "Reference to a source document previously uploaded through `/files`.",
+                          "properties": {
+                            "type": {
+                              "const": "file",
+                              "description": "Source kind discriminator.",
+                              "type": "string"
+                            },
+                            "file_id": {
+                              "description": "`file_id` from `POST /files`; its extraction must have completed (409 `SOURCES_NOT_READY` otherwise).",
+                              "format": "uuid",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "file_id"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Inline text and/or references to files uploaded through POST /files."
+              },
+              "name": {
+                "default": "Untitled Presentation",
+                "description": "Deck name shown in the workspace. Omitted: `deck_title`, else the outline's `documentTitle`, else the generated title.",
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              "visibility": {
+                "description": "Who can open the deck. `PROJECT` requires `project_id`.",
+                "enum": [
+                  "PROJECT",
+                  "PRIVATE",
+                  "WORKSPACE",
+                  "PUBLIC"
+                ],
+                "type": "string",
+                "default": "WORKSPACE"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Project to create the deck in. Required for `PROJECT` visibility; a project-scoped API key must pass its own project."
+              },
+              "deck_title": {
+                "anyOf": [
+                  {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Requested presentation title. Alone it is enough to generate from; it also names the deck when `name` is omitted."
+              },
+              "outline": {
+                "anyOf": [
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "The `outline` object from `create_outline`, edited as needed. Skips outline generation; cannot be combined with `prompt` or sources."
+              },
+              "company": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Company the deck is about; seeds research and the outline's `companyName` instead of inferring it from the prompt."
+              },
+              "creator_role": {
+                "anyOf": [
+                  {
+                    "maxLength": 1000,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Author's job title; sets background tone and research budget. Omitted: the API key owner's profile role."
+              },
+              "model": {
+                "description": "Generation model tier, case-insensitive. A tier above the workspace plan's returns 403 `FEATURE_NOT_IN_PLAN`.",
+                "enum": [
+                  "STANDARD",
+                  "PRO",
+                  "ULTRA"
+                ],
+                "type": "string",
+                "default": "STANDARD"
+              },
+              "language": {
+                "default": "English",
+                "description": "Output language as an English name (e.g. `French`); `auto` follows the language of the prompt and sources.",
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "slide_count": {
+                "anyOf": [
+                  {
+                    "pattern": "^(auto|\\d{1,2}(-\\d{1,2})?|\\d{1,2}\\+)$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Slides including the cover, each number 1-50: `N` exact, `N-M` a range, `N+` at least N, `auto` or omitted lets the writer decide. `1` yields one summary slide with no cover."
+              },
+              "level_of_detail": {
+                "anyOf": [
+                  {
+                    "description": "Text density per content item.\n\nBRIEF: label plus at most a short line. STANDARD: one sentence. DETAILED: 1-2\nsentences. VERY_DETAILED: 2-3 sentences.",
+                    "enum": [
+                      "BRIEF",
+                      "STANDARD",
+                      "DETAILED",
+                      "VERY_DETAILED"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Text density per content item, case-insensitive. Omitted: adapted to the topic and content."
+              },
+              "insider_content": {
+                "anyOf": [
+                  {
+                    "maxLength": 200000,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Private background facts about your organisation. Used where a slide calls for them, never cited; counts toward the plan content limit."
+              },
+              "export_format": {
+                "description": "Format of the artifact exported when generation completes.",
+                "enum": [
+                  "PPTX",
+                  "PDF",
+                  "IMAGE"
+                ],
+                "type": "string",
+                "default": "PPTX"
+              },
+              "audience": {
+                "anyOf": [
+                  {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Who the deck is for. Omitted: inferred from the prompt and sources, never asked back (the API run has no questions)."
+              },
+              "deck_purpose": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Purpose id from the deck purpose taxonomy: pitch, sales, marketing, strategy, report, training, teaching, coursework, product, research, security, general."
+              },
+              "brand_kit_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Style the deck as a brand: an `id` from `GET /brand-kits`. Omitted: no brand kit."
+              },
+              "deep_search": {
+                "default": false,
+                "description": "Consultant-grade research and exhibit slides (paid plans; doubles the deck's per-slide credits). Not applicable to an authored outline.",
+                "type": "boolean"
+              },
+              "budget_tier": {
+                "default": "standard",
+                "description": "Quality tier: `lite`, `standard` (default) or `premium`, each billed at its own per-slide rate. An API run is always Fast: it never asks questions, at any tier.",
+                "enum": [
+                  "lite",
+                  "standard",
+                  "premium"
+                ],
+                "type": "string"
+              },
+              "missing_data": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "placeholder",
+                      "estimate"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "A figure only you hold that nobody gave: `placeholder` leaves a `[DATA NEEDED: …]` marker; `estimate` writes a plausible estimate (recorded as one in the outline's figure check). Omitted: taken from what the prompt asks for (\"use only my numbers\" leaves markers), else `estimate`."
+              },
+              "fidelity": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "retain",
+                      "condense",
+                      "context"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "How source material is used: `retain` keeps its slides, `condense` keeps its sections and tightens them, `context` builds a new deck from it. Omitted: picked from the request and the material."
+              },
+              "narrative": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Narrative arc the storyline follows (e.g. `answer_first`, `what_why_how`). Omitted: the usual arc for the purpose and audience."
+              },
+              "delivery": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "stage",
+                      "meeting",
+                      "video",
+                      "read",
+                      "print"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "How the deck is shown: `stage` (a big screen), `meeting`, `video` (a call), `read` (sent and read alone) or `print`. Sets the words per slide."
+              },
+              "use_case": {
+                "anyOf": [
+                  {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Use case id from the create flow's list; routes the writer persona and the asks."
+              },
+              "speaker_notes": {
+                "default": false,
+                "description": "Write presenter talking points for every slide.",
+                "type": "boolean"
+              },
+              "company_domain": {
+                "anyOf": [
+                  {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "The company's web domain (e.g. `acme.com`); with `company`, seeds research and the brand lookup."
+              },
+              "graphic_types": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 30,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Allow-list of body graphics the writer may use (e.g. `table`, `list`, `diagram`); anything else is redrawn as the closest allowed type."
+              },
+              "diagram_subtypes": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 30,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Allow-list of diagram shapes (e.g. `process`, `cycle`) when `diagram` is allowed."
+              }
+            },
+            "type": "object"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional idempotency key. Omitted: retrying an identical request returns the same deck; after a FAILED run, or once that deck is deleted, it starts a new one."
+          }
+        },
+        "required": [
+          "deck"
+        ]
+      },
+      "outputSchema": {
+        "description": "A dispatched deck-generation run: the new deck, its task handle, and app link.",
+        "properties": {
+          "deck_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "task_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "description": "Lifecycle state of an async task: CREATED (queued), RUNNING, then COMPLETED or FAILED.",
+            "enum": [
+              "CREATED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "deck_url": {
+            "description": "Opens the deck in the PresentationsAI app; requires signing in as a member with access. Not a public link: use `share_deck` for one.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deck_id",
+          "task_id",
+          "status",
+          "deck_url"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "get_task",
+      "title": "Get Task",
+      "description": "Status of an async task (e.g. a presentation generation).\n\nWith wait_time=0, returns an immediate snapshot. With wait_time>0 (capped at\n60s), waits until the task reaches COMPLETED/FAILED or the window elapses,\nthen returns the latest status. Once a generation is COMPLETED, `get_export`\nreturns its file.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "wait_time": {
+            "default": 20,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "task_id"
+        ]
+      },
+      "outputSchema": {
+        "description": "An async task's status.",
+        "properties": {
+          "task_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Task type — determines which Restate handler to invoke.",
+            "enum": [
+              "FILE_EXTRACTION",
+              "COMPANY_ENRICHMENT",
+              "DECK_GENERATION",
+              "DECK_EXPORT",
+              "BRAND_KIT_GENERATION",
+              "PPT_IMPORT_EXTRACT",
+              "PPT_IMPORT_REFRESH",
+              "PPT_FAITHFUL_PARSE",
+              "IMAGE_CATALOG_ACTIVATE",
+              "MEDIA_CATALOG_PUBLISH"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Lifecycle state of an async task: CREATED (queued), RUNNING, then COMPLETED or FAILED.",
+            "enum": [
+              "CREATED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "subject_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "task_id",
+          "kind",
+          "status",
+          "subject_id",
+          "error"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "get_export",
+      "title": "Get Export",
+      "description": "Latest export artifact for a deck, with a short-lived download URL.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deck_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deck_id"
+        ]
+      },
+      "outputSchema": {
+        "description": "A produced export artifact with a short-lived, anonymous download URL.",
+        "properties": {
+          "deck_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "format": {
+            "description": "Export artifact format: PPTX, PDF, or IMAGE (a ZIP with one image per slide).",
+            "enum": [
+              "PPTX",
+              "PDF",
+              "IMAGE"
+            ],
+            "type": "string"
+          },
+          "download_url": {
+            "description": "Anonymous download link; it expires after 15 minutes, so call `get_export` again for a fresh one.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deck_id",
+          "format",
+          "download_url"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "share_deck",
+      "title": "Share Deck",
+      "description": "Get or create the deck's public share link and return the URL.\n\nAnyone with the link can open the deck, so use it only when the user asks for a\nlink or to share the deck. Reuses the existing link so the URL is stable; pass\nrotate=true to mint a fresh one (the previous URL stops working).",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deck_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rotate": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deck_id"
+        ]
+      },
+      "outputSchema": {
+        "description": "A deck's public share link.",
+        "properties": {
+          "deck_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "share_url": {
+            "description": "Public view link: opens the deck without signing in, subject to the link's password or expiry.",
+            "format": "uri",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "deck_id",
+          "share_url"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "list_projects",
+      "title": "List Projects",
+      "description": "List projects, or folders with `kind=FOLDER` (optionally one container's children).\n\n`top_level=true` keeps the caller's top level: no parent, or a parent they\ncannot reach. Not with `parent_id`. A project-bound key sees its project and\nthe folders below it, with that project as its top.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Page",
+            "default": 1
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "default": 200
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "PROJECT",
+              "FOLDER"
+            ],
+            "title": "ProjectKind",
+            "description": "What a project row is: a knowledge-bearing project or a plain folder."
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "top_level": {
+            "type": "boolean",
+            "title": "Top Level",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "description": "Items on this page.",
+            "items": {
+              "description": "A project.",
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "title": "Id",
+                  "type": "string"
+                },
+                "name": {
+                  "title": "Name",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "title": "MCPProject",
+              "type": "object"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "page": {
+            "description": "1-based page number returned.",
+            "title": "Page",
+            "type": "integer"
+          },
+          "limit": {
+            "description": "Maximum items per page.",
+            "title": "Limit",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Items matching the filters across all pages.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "page",
+          "limit",
+          "total"
+        ],
+        "title": "Page[MCPProject]",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "projects",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "search_brand_kits",
+      "title": "Search Brand Kits",
+      "description": "Search the brand kits you can style a deck with.\n\nUse a result's `id` as `brand_kit_id` when creating a deck. Includes published brands, your\nworkspace's kits and your own unshared kits. A brand limited to approved email domains appears\nonly when your verified email domain is one of them.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q",
+            "description": "Brand name or domain to search for."
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain",
+            "description": "Exact brand domain, e.g. `acme.com`."
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CATALOG",
+                  "WORKSPACE",
+                  "PERSONAL"
+                ],
+                "title": "KitType",
+                "description": "Where a visible kit comes from."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Only catalog brands, or only your workspace's kits."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Page",
+            "default": 1
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "title": "Id",
+                  "description": "Pass as `brand_kit_id` to `POST /decks`."
+                },
+                "name": {
+                  "type": "string",
+                  "title": "Name",
+                  "description": "The brand."
+                },
+                "domain": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Domain",
+                  "description": "The brand's domain; null for generic style kits."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "CATALOG",
+                    "WORKSPACE",
+                    "PERSONAL"
+                  ],
+                  "title": "KitType",
+                  "description": "CATALOG: a published brand. WORKSPACE: one of your workspace's kits. PERSONAL: your own kit, shared with no workspace."
+                },
+                "access": {
+                  "type": "string",
+                  "enum": [
+                    "PUBLIC",
+                    "DOMAIN",
+                    "WORKSPACE",
+                    "OWNER"
+                  ],
+                  "title": "KitAccess",
+                  "description": "Why you can see it. PUBLIC: open to everyone. DOMAIN: limited to approved email domains, and yours is one. WORKSPACE: your workspace's kit. OWNER: your own kit."
+                },
+                "logo_url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Logo Url",
+                  "description": "The brand mark, when the kit has one."
+                },
+                "colors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "title": "Colors",
+                  "description": "Brand colours as hex."
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "type",
+                "access"
+              ],
+              "title": "BrandKitMatch",
+              "description": "One brand kit the caller may style a deck with."
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Items on this page."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "1-based page number returned."
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "Maximum items per page."
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Items matching the filters across all pages."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "data",
+          "page",
+          "limit",
+          "total"
+        ],
+        "title": "Page[BrandKitMatch]",
+        "x-fastmcp-top-level-schema": "Page_BrandKitMatch_"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "brand-kits",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list_decks",
+      "title": "List Decks",
+      "description": "List accessible decks with project, flag, sort, search, and pagination filters.\n\nDecks that have no slides yet (generation still running, or never completed)\nare omitted; fetch those by id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "flag": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "STARRED"
+                ],
+                "title": "DeckFlagType",
+                "description": "Kinds of per-user deck flag."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "RECENT",
+              "NAME",
+              "UPDATED",
+              "CREATED"
+            ],
+            "title": "DeckSort",
+            "description": "Ordering for the deck list query."
+          },
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Page",
+            "default": 1
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 200,
+            "minimum": 1,
+            "title": "Limit",
+            "default": 50
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "description": "Items on this page.",
+            "items": {
+              "description": "A deck: its name, who can open it, its project and its app link.",
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "title": "Id",
+                  "type": "string"
+                },
+                "name": {
+                  "title": "Name",
+                  "type": "string"
+                },
+                "visibility": {
+                  "description": "Who can open the deck.",
+                  "enum": [
+                    "PROJECT",
+                    "PRIVATE",
+                    "WORKSPACE",
+                    "PUBLIC"
+                  ],
+                  "title": "DeckVisibility",
+                  "type": "string"
+                },
+                "project_id": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Project Id"
+                },
+                "deck_url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Opens the deck in the PresentationsAI app; requires signing in as a member with access. Not a public link: use `share_deck` for one.",
+                  "title": "Deck Url"
+                },
+                "has_share_link": {
+                  "description": "Whether a public share link is active for the deck.",
+                  "title": "Has Share Link",
+                  "type": "boolean"
+                },
+                "flags": {
+                  "description": "The user's own flags on the deck.",
+                  "items": {
+                    "description": "Kinds of per-user deck flag.",
+                    "enum": [
+                      "STARRED"
+                    ],
+                    "title": "DeckFlagType",
+                    "type": "string"
+                  },
+                  "title": "Flags",
+                  "type": "array"
+                },
+                "version": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Content version the deck shows: v1, v2, or null when authored in the app.",
+                  "title": "Version"
+                },
+                "origin_version": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Version the deck was migrated from; when it differs from `version`, `patch_deck` can switch back to it.",
+                  "title": "Origin Version"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "visibility",
+                "project_id",
+                "has_share_link",
+                "flags",
+                "version",
+                "origin_version"
+              ],
+              "title": "MCPDeck",
+              "type": "object"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "page": {
+            "description": "1-based page number returned.",
+            "title": "Page",
+            "type": "integer"
+          },
+          "limit": {
+            "description": "Maximum items per page.",
+            "title": "Limit",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Items matching the filters across all pages.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "data",
+          "page",
+          "limit",
+          "total"
+        ],
+        "title": "Page[MCPDeck]",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "decks",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_deck",
+      "title": "Get Deck",
+      "description": "Fetch deck metadata, latest generation status, and existing export artifacts.\n\nOver MCP, export download URLs open without a key and expire after 15 minutes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deck_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Deck Id"
+          }
+        },
+        "required": [
+          "deck_id"
+        ]
+      },
+      "outputSchema": {
+        "description": "A deck with its latest generation status and the files produced from it.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "Who can open the deck.",
+            "enum": [
+              "PROJECT",
+              "PRIVATE",
+              "WORKSPACE",
+              "PUBLIC"
+            ],
+            "title": "DeckVisibility",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "deck_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Opens the deck in the PresentationsAI app; requires signing in as a member with access. Not a public link: use `share_deck` for one.",
+            "title": "Deck Url"
+          },
+          "has_share_link": {
+            "description": "Whether a public share link is active for the deck.",
+            "title": "Has Share Link",
+            "type": "boolean"
+          },
+          "flags": {
+            "description": "The user's own flags on the deck.",
+            "items": {
+              "description": "Kinds of per-user deck flag.",
+              "enum": [
+                "STARRED"
+              ],
+              "title": "DeckFlagType",
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Content version the deck shows: v1, v2, or null when authored in the app.",
+            "title": "Version"
+          },
+          "origin_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Version the deck was migrated from; when it differs from `version`, `patch_deck` can switch back to it.",
+            "title": "Origin Version"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "description": "Lifecycle state of an async task: CREATED (queued), RUNNING, then COMPLETED or FAILED.",
+                "enum": [
+                  "CREATED",
+                  "RUNNING",
+                  "COMPLETED",
+                  "FAILED"
+                ],
+                "title": "AsyncTaskStatus",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Status of the deck's latest generation; null when it was never generated."
+          },
+          "exports": {
+            "items": {
+              "description": "A file already produced from the deck.",
+              "properties": {
+                "format": {
+                  "description": "Export artifact format: PPTX, PDF, or IMAGE (a ZIP with one image per slide).",
+                  "enum": [
+                    "PPTX",
+                    "PDF",
+                    "IMAGE"
+                  ],
+                  "title": "DeckExportFormat",
+                  "type": "string"
+                },
+                "download_url": {
+                  "description": "Anonymous download link; it expires after 15 minutes, so call `get_deck` again for a fresh one.",
+                  "title": "Download Url",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "format",
+                "download_url"
+              ],
+              "title": "MCPExport",
+              "type": "object"
+            },
+            "title": "Exports",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "visibility",
+          "project_id",
+          "has_share_link",
+          "flags",
+          "version",
+          "origin_version",
+          "status",
+          "exports"
+        ],
+        "title": "MCPDeckDetail",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "decks",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "delete_deck",
+      "title": "Delete Deck",
+      "description": "Soft-delete a deck; the operation is idempotent for an already deleted deck.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deck_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Deck Id"
+          }
+        },
+        "required": [
+          "deck_id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "decks",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "patch_deck",
+      "title": "Patch Deck",
+      "description": "Rename a deck, change who can open it, or move it to another project.\n\nIt can also switch which content version the deck shows. Changing visibility can make the\ndeck public or remove other people's access. It doesn't start generation or create an export.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deck_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Deck Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "New name; omitted keeps it."
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PROJECT",
+                  "PRIVATE",
+                  "WORKSPACE",
+                  "PUBLIC"
+                ],
+                "title": "DeckVisibility",
+                "description": "Who can open a deck.\n\nPROJECT: the project's members. PRIVATE: the creator and explicit grants.\nWORKSPACE: any workspace member. PUBLIC: published."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "New visibility; omitted keeps it. Changing it needs share-manage permission."
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id",
+            "description": "Move the deck to this project; omitted or null keeps it."
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "v1",
+                  "v2"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Content version to render; must be one the deck has content for."
+          }
+        },
+        "required": [
+          "deck_id"
+        ]
+      },
+      "outputSchema": {
+        "description": "A deck: its name, who can open it, its project and its app link.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "Who can open the deck.",
+            "enum": [
+              "PROJECT",
+              "PRIVATE",
+              "WORKSPACE",
+              "PUBLIC"
+            ],
+            "title": "DeckVisibility",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "deck_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Opens the deck in the PresentationsAI app; requires signing in as a member with access. Not a public link: use `share_deck` for one.",
+            "title": "Deck Url"
+          },
+          "has_share_link": {
+            "description": "Whether a public share link is active for the deck.",
+            "title": "Has Share Link",
+            "type": "boolean"
+          },
+          "flags": {
+            "description": "The user's own flags on the deck.",
+            "items": {
+              "description": "Kinds of per-user deck flag.",
+              "enum": [
+                "STARRED"
+              ],
+              "title": "DeckFlagType",
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Content version the deck shows: v1, v2, or null when authored in the app.",
+            "title": "Version"
+          },
+          "origin_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Version the deck was migrated from; when it differs from `version`, `patch_deck` can switch back to it.",
+            "title": "Origin Version"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "visibility",
+          "project_id",
+          "has_share_link",
+          "flags",
+          "version",
+          "origin_version"
+        ],
+        "title": "MCPDeck",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "decks",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "create_grant",
+      "title": "Create Grant",
+      "description": "Share a deck with one person, by user ID or email address, at the given role.\n\nIf they already have access, their role is replaced, which can lower it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deck_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Deck Id"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Subject",
+            "description": "A user id, or an email address (creates an `EMAIL` grant)."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "VIEW",
+              "COMMENT",
+              "EDIT"
+            ],
+            "title": "DeckGrantRole",
+            "description": "Access level to grant."
+          }
+        },
+        "required": [
+          "deck_id",
+          "subject",
+          "role"
+        ]
+      },
+      "outputSchema": {
+        "description": "Who the deck is now shared with, and at what role.",
+        "properties": {
+          "deck_id": {
+            "format": "uuid",
+            "title": "Deck Id",
+            "type": "string"
+          },
+          "role": {
+            "description": "Per-deck grant role for sharing decks independently of project membership.",
+            "enum": [
+              "VIEW",
+              "COMMENT",
+              "EDIT"
+            ],
+            "title": "DeckGrantRole",
+            "type": "string"
+          },
+          "subject_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Email the deck was shared with; null when shared by user id.",
+            "title": "Subject Email"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "description": "The person a deck is shared with.",
+                "properties": {
+                  "display_name": {
+                    "title": "Display Name",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "display_name"
+                ],
+                "title": "MCPGrantee",
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "deck_id",
+          "role",
+          "subject_email",
+          "subject"
+        ],
+        "title": "MCPGrant",
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "decks",
+            "rest-api"
+          ]
+        }
+      }
+    },
+    {
+      "name": "create_outline",
+      "title": "Create Outline",
+      "description": "Generate a stateless outline from a prompt and/or extracted files.\n\nNo deck, session, or generation request is persisted. Referenced files must belong to the\ncaller's workspace and have completed extraction before this request.\n\nBills the outline's slides at the Standard rate (10 credits per slide), once, before it is\nreturned; an empty balance is a 402. Send an `Idempotency-Key` to retry safely: a key that\nalready paid is a 409.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "accept-language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept-Language"
+          },
+          "Idempotency-Key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency-Key"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt",
+            "description": "Topic and instructions for the presentation, or pasted content to build from."
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text",
+                          "title": "Type",
+                          "description": "Source kind discriminator."
+                        },
+                        "content": {
+                          "type": "string",
+                          "maxLength": 200000,
+                          "minLength": 1,
+                          "title": "Content",
+                          "description": "Factual material to build from; all text sources together are capped at 200,000 characters."
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "type"
+                      ],
+                      "title": "TextSource",
+                      "description": "Inline factual source material supplied directly in the request."
+                    },
+                    {
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "file",
+                          "title": "Type",
+                          "description": "Source kind discriminator."
+                        },
+                        "file_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "title": "File Id",
+                          "description": "`file_id` from `POST /files`; its extraction must have completed (409 `SOURCES_NOT_READY` otherwise)."
+                        }
+                      },
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "type"
+                      ],
+                      "title": "FileSource",
+                      "description": "Reference to a source document previously uploaded through `/files`."
+                    }
+                  ]
+                },
+                "type": "array",
+                "maxItems": 100,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources",
+            "description": "Inline text and/or references to files uploaded through POST /files."
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Language",
+            "description": "Output language as an English name (e.g. `French`); `auto` follows the language of the prompt and sources.",
+            "default": "English"
+          },
+          "slide_count": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(auto|\\d{1,2}(-\\d{1,2})?|\\d{1,2}\\+)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slide Count",
+            "description": "Slides including the cover, each number 1-50: `N` exact, `N-M` a range, `N+` at least N, `auto` or omitted lets the writer decide."
+          },
+          "level_of_detail": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "brief",
+                  "standard",
+                  "detailed",
+                  "very_detailed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Of Detail",
+            "description": "Text density per content item, case-insensitive. Omitted: adapted to the topic and content."
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "properties": {
+          "outline": {
+            "properties": {
+              "documentTitle": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Documenttitle",
+                "description": "Presentation title; names the deck when no `name` or `deck_title` is given."
+              },
+              "hook": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Hook"
+              },
+              "researchSummary": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Researchsummary"
+              },
+              "contentLanguage": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Contentlanguage",
+                "description": "Language the outline is written in, as an English name."
+              },
+              "footerText": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Footertext",
+                "description": "One-line footer for the whole deck."
+              },
+              "imagePrompt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Imageprompt",
+                "description": "Prompt for the generated cover image."
+              },
+              "contentMode": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Contentmode",
+                "description": "`retain` or `condense` when the outline mirrors supplied content; layouts then keep its structure instead of reshaping it."
+              },
+              "companyName": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companyname",
+                "description": "Company the deck is about: the requested `company`, else one detected from the topic."
+              },
+              "companyDomain": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Companydomain",
+                "description": "Domain of `companyName`."
+              },
+              "audienceQuestions": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array",
+                    "maxItems": 9
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Audiencequestions"
+              },
+              "rawXml": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 400000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Rawxml"
+              },
+              "figureCheck": {
+                "anyOf": [
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Figurecheck"
+              },
+              "slides": {
+                "items": {
+                  "properties": {
+                    "heading": {
+                      "type": "string",
+                      "maxLength": 2000,
+                      "minLength": 1,
+                      "title": "Heading",
+                      "description": "Slide title; may wrap one key span in `**bold**`."
+                    },
+                    "subheading": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 2000
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Subheading",
+                      "description": "Optional subtitle; on the cover it is the deck subtitle."
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 20000
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Description",
+                      "description": "Plain-text slide content; the content source when `graphics` is absent."
+                    },
+                    "category": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Category",
+                      "description": "Fallback for `useCase` when that is absent."
+                    },
+                    "useCase": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Usecase",
+                      "description": "2-4 word slide-purpose label shown above the title; `Cover` and `Section Break` mark those slide kinds."
+                    },
+                    "speakerNotes": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 5000
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Speakernotes",
+                      "description": "Presenter talking points."
+                    },
+                    "visualComposition": {
+                      "anyOf": [
+                        {
+                          "items": {
+                            "type": "string",
+                            "maxLength": 100,
+                            "minLength": 1
+                          },
+                          "type": "array",
+                          "maxItems": 20
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Visualcomposition",
+                      "description": "Ordered graphic types used to pick the layout, starting with `titleandsubtitle`; a comma-separated string is also accepted."
+                    },
+                    "graphicSubtypes": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "type": "object",
+                          "maxProperties": 20
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Graphicsubtypes",
+                      "description": "Subtype per graphic type, e.g. `{\"diagram\": \"pyramid\"}`."
+                    },
+                    "graphics": {
+                      "anyOf": [
+                        {
+                          "items": {
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "maxLength": 100,
+                                "minLength": 1,
+                                "title": "Type",
+                                "description": "Graphic type, e.g. `list_with_description`, `kpi_block`, `table`, `timeline`; only `diagram` and `chart` take a `:subtype` (`diagram:pyramid`)."
+                              },
+                              "heading": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Heading",
+                                "description": "Graphic caption, e.g. what a chart measures; expected on charts and diagrams."
+                              },
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "items": {
+                                      "properties": {
+                                        "h": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 2000
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "H",
+                                          "description": "Item head: label, step name, or chart point label."
+                                        },
+                                        "b": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 5000
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "B",
+                                          "description": "Item body: one explanatory sentence, or the whole text of a `paragraph`."
+                                        },
+                                        "v": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "V",
+                                          "description": "Numeric value, chart datum or date marker; `multi_series_chart` items carry ` / `-separated values in series order."
+                                        },
+                                        "s": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 500
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "S",
+                                          "description": "Source or speaker role, e.g. for quotes."
+                                        },
+                                        "i": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 100
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "I",
+                                          "description": "Icon hint: a 1-3 word pictogram noun."
+                                        },
+                                        "sub": {
+                                          "anyOf": [
+                                            {
+                                              "items": {
+                                                "type": "string",
+                                                "maxLength": 2000,
+                                                "minLength": 1
+                                              },
+                                              "type": "array",
+                                              "maxItems": 20
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Sub",
+                                          "description": "Sub-bullets under this item."
+                                        },
+                                        "tags": {
+                                          "anyOf": [
+                                            {
+                                              "items": {
+                                                "type": "string",
+                                                "maxLength": 80,
+                                                "minLength": 1
+                                              },
+                                              "type": "array",
+                                              "maxItems": 6
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Tags",
+                                          "description": "Short chips such as owner, horizon, workstream, segment or stage."
+                                        },
+                                        "metric": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Metric",
+                                          "description": "One figure belonging to this item."
+                                        },
+                                        "entity": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Entity",
+                                          "description": "Company or product this item is about."
+                                        },
+                                        "entityDomain": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Entitydomain",
+                                          "description": "Domain of `entity`, used to draw its logo."
+                                        },
+                                        "trend": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 40
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Trend",
+                                          "description": "`rising`, `flat` or `falling`."
+                                        },
+                                        "status": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 60
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Status",
+                                          "description": "`supported`, `refuted`, `untestable`, `on-track` or `at-risk`."
+                                        },
+                                        "delta": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 160
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Delta",
+                                          "description": "Measured change the figure represents, e.g. `+400 bps vs FY2024`."
+                                        },
+                                        "period": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 160
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Period",
+                                          "description": "Period or basis the figure belongs to, e.g. `Q3 FY2026`."
+                                        }
+                                      },
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "title": "OutlineGraphicItem",
+                                      "description": "One content item inside a v8 structured graphic.\n\nMirrors the v8 writer's item contract: `h` head/label, `b` body/explanation,\n`v` value (kpi/chart datum), `s` source/role (quotes), `i` icon hint\n(direct-build), `sub` sub-bullets."
+                                    },
+                                    "type": "array",
+                                    "maxItems": 30
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Items",
+                                "description": "Content items in reading order."
+                              },
+                              "rows": {
+                                "anyOf": [
+                                  {
+                                    "items": {
+                                      "type": "string",
+                                      "maxLength": 2000,
+                                      "minLength": 1
+                                    },
+                                    "type": "array",
+                                    "maxItems": 50
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Rows",
+                                "description": "Table rows as `|`-separated cells; the first row is the header."
+                              },
+                              "extra": {
+                                "anyOf": [
+                                  {
+                                    "items": {
+                                      "properties": {
+                                        "h": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 2000
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "H",
+                                          "description": "Item head: label, step name, or chart point label."
+                                        },
+                                        "b": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 5000
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "B",
+                                          "description": "Item body: one explanatory sentence, or the whole text of a `paragraph`."
+                                        },
+                                        "v": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "V",
+                                          "description": "Numeric value, chart datum or date marker; `multi_series_chart` items carry ` / `-separated values in series order."
+                                        },
+                                        "s": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 500
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "S",
+                                          "description": "Source or speaker role, e.g. for quotes."
+                                        },
+                                        "i": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 100
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "I",
+                                          "description": "Icon hint: a 1-3 word pictogram noun."
+                                        },
+                                        "sub": {
+                                          "anyOf": [
+                                            {
+                                              "items": {
+                                                "type": "string",
+                                                "maxLength": 2000,
+                                                "minLength": 1
+                                              },
+                                              "type": "array",
+                                              "maxItems": 20
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Sub",
+                                          "description": "Sub-bullets under this item."
+                                        },
+                                        "tags": {
+                                          "anyOf": [
+                                            {
+                                              "items": {
+                                                "type": "string",
+                                                "maxLength": 80,
+                                                "minLength": 1
+                                              },
+                                              "type": "array",
+                                              "maxItems": 6
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Tags",
+                                          "description": "Short chips such as owner, horizon, workstream, segment or stage."
+                                        },
+                                        "metric": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Metric",
+                                          "description": "One figure belonging to this item."
+                                        },
+                                        "entity": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Entity",
+                                          "description": "Company or product this item is about."
+                                        },
+                                        "entityDomain": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 200
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Entitydomain",
+                                          "description": "Domain of `entity`, used to draw its logo."
+                                        },
+                                        "trend": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 40
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Trend",
+                                          "description": "`rising`, `flat` or `falling`."
+                                        },
+                                        "status": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 60
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Status",
+                                          "description": "`supported`, `refuted`, `untestable`, `on-track` or `at-risk`."
+                                        },
+                                        "delta": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 160
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Delta",
+                                          "description": "Measured change the figure represents, e.g. `+400 bps vs FY2024`."
+                                        },
+                                        "period": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 160
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "title": "Period",
+                                          "description": "Period or basis the figure belongs to, e.g. `Q3 FY2026`."
+                                        }
+                                      },
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "title": "OutlineGraphicItem",
+                                      "description": "One content item inside a v8 structured graphic.\n\nMirrors the v8 writer's item contract: `h` head/label, `b` body/explanation,\n`v` value (kpi/chart datum), `s` source/role (quotes), `i` icon hint\n(direct-build), `sub` sub-bullets."
+                                    },
+                                    "type": "array",
+                                    "maxItems": 4
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Extra",
+                                "description": "Reserve items, shown only to fill spare slots in the chosen layout."
+                              },
+                              "callout": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Callout",
+                                "description": "Annotation drawn on the exhibit: the delta or outlier to read."
+                              },
+                              "stamp": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 40
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Stamp",
+                                "description": "`ILLUSTRATIVE`, `PRELIMINARY`, `DRAFT` or `INDICATIVE` for modelled or soft figures."
+                              },
+                              "footnote": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 600
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Footnote",
+                                "description": "Definition, period basis, or arithmetic behind a figure."
+                              },
+                              "ref": {
+                                "anyOf": [
+                                  {
+                                    "properties": {
+                                      "label": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "maxLength": 120
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "Label",
+                                        "description": "Line label, e.g. `Benchmark`."
+                                      },
+                                      "v": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "maxLength": 80
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "V",
+                                        "description": "Line value, e.g. `4%`."
+                                      }
+                                    },
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "title": "OutlineRef",
+                                    "description": "A benchmark/target line a chart should show (`<ref label v/>`)."
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "Target or benchmark line the chart should show."
+                              },
+                              "highlight": {
+                                "anyOf": [
+                                  {
+                                    "properties": {
+                                      "kind": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "maxLength": 20
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "Kind",
+                                        "description": "`row`, `column`, `cell`, `point` or `node`."
+                                      },
+                                      "at": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "maxLength": 200
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "At",
+                                        "description": "Which element: 1-based table row below the header, column header, `row,column`, or a chart point's / node's `h` label."
+                                      },
+                                      "text": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "maxLength": 300
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ],
+                                        "title": "Text",
+                                        "description": "Why this element matters, in a few words."
+                                      }
+                                    },
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "title": "OutlineHighlight",
+                                    "description": "The one element of a graphic the heading rests on (`<highlight kind at>why</highlight>`)."
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "The one element the slide heading's claim rests on."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "type"
+                            ],
+                            "title": "OutlineGraphic",
+                            "description": "One typed body graphic on a v8 outline slide.\n\n`type` may carry a subtype suffix (e.g. ``diagram:process``). Tables use\n`rows` (pipe-separated cells, first row = headers) instead of `items`."
+                          },
+                          "type": "array",
+                          "maxItems": 10
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Graphics",
+                      "description": "Structured body graphics in reading order; omitted on cover and section break slides."
+                    },
+                    "imageQuery": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Imagequery",
+                      "description": "Stock-photo search caption describing what the photo shows."
+                    },
+                    "sources": {
+                      "anyOf": [
+                        {
+                          "items": {
+                            "properties": {
+                              "domain": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Domain",
+                                "description": "Publisher domain."
+                              },
+                              "text": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Text",
+                                "description": "Publisher and period, e.g. `Acme, Q3 2025`."
+                              },
+                              "url": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Url",
+                                "description": "Citation URL; absent when there is none."
+                              }
+                            },
+                            "additionalProperties": false,
+                            "type": "object",
+                            "title": "OutlineSource",
+                            "description": "One slide-level source chip (`<sources><s domain url>Publisher, period</s></sources>`)."
+                          },
+                          "type": "array",
+                          "maxItems": 8
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Sources",
+                      "description": "Publishers of this slide's figures."
+                    },
+                    "confidence": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Confidence",
+                      "description": "`high`, `medium` or `low`: how firmly the slide's figures are sourced."
+                    },
+                    "knowledge": {
+                      "anyOf": [
+                        {
+                          "items": {
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "maxLength": 300,
+                                "minLength": 1,
+                                "title": "Text"
+                              },
+                              "source": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "title": "Source"
+                              }
+                            },
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "text"
+                            ],
+                            "title": "OutlineKnowledgeFact",
+                            "description": "One figure the writer stated from its OWN knowledge, with the source it names for it.\n\nNot from the research and not from the user's text:\n`<knowledge><k source=\"Publisher, document, year\">figure — what it measures</k></knowledge>`."
+                          },
+                          "type": "array",
+                          "maxItems": 20
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Knowledge",
+                      "description": "Figures stated from the writer's own knowledge, with the source it names."
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "heading"
+                  ],
+                  "title": "PresentationOutlineSlide",
+                  "description": "One validated slide in a generated or caller-authored outline."
+                },
+                "type": "array",
+                "maxItems": 200,
+                "minItems": 1,
+                "title": "Slides",
+                "description": "Slides in presentation order."
+              }
+            },
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "slides"
+            ],
+            "title": "PresentationOutline",
+            "description": "Generated outline; edit it and pass it as `outline` to `POST /decks`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outline"
+        ],
+        "title": "CreateOutlineResponse",
+        "description": "Completed stateless outline generation.",
+        "x-fastmcp-top-level-schema": "CreateOutlineResponse"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": [
+            "outlines",
+            "rest-api"
+          ]
+        }
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "name": "new_presentation",
+      "description": "Create a presentation on a topic and download the finished file.",
+      "arguments": [
+        {
+          "name": "topic",
+          "description": "Provide a value matching the following JSON schema: {\"type\":\"string\"}. Encode non-string values as JSON.",
+          "required": true
+        },
+        {
+          "name": "slide_count",
+          "description": "Provide a value matching the following JSON schema: {\"type\":\"string\"}. Encode non-string values as JSON.",
+          "required": false
+        }
+      ],
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    }
+  ],
+  "resources": [
+    {
+      "name": "workspace_resource",
+      "uri": "presentation://workspace",
+      "description": "Return the caller's workspace + credits snapshot (mirrors whoami).",
+      "mimeType": "application/json",
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "create-presentation/SKILL.md",
+      "uri": "skill://create-presentation/SKILL.md",
+      "description": "Skill: create-presentation",
+      "mimeType": "text/markdown",
+      "_meta": {
+        "fastmcp": {
+          "tags": [],
+          "skill": {
+            "name": "create-presentation",
+            "is_manifest": false
+          }
+        }
+      }
+    },
+    {
+      "name": "create-presentation/_manifest",
+      "uri": "skill://create-presentation/_manifest",
+      "description": "File listing for create-presentation",
+      "mimeType": "application/json",
+      "_meta": {
+        "fastmcp": {
+          "tags": [],
+          "skill": {
+            "name": "create-presentation",
+            "is_manifest": true
+          }
+        }
+      }
+    },
+    {
+      "name": "manage-presentations/SKILL.md",
+      "uri": "skill://manage-presentations/SKILL.md",
+      "description": "Skill: manage-presentations",
+      "mimeType": "text/markdown",
+      "_meta": {
+        "fastmcp": {
+          "tags": [],
+          "skill": {
+            "name": "manage-presentations",
+            "is_manifest": false
+          }
+        }
+      }
+    },
+    {
+      "name": "manage-presentations/_manifest",
+      "uri": "skill://manage-presentations/_manifest",
+      "description": "File listing for manage-presentations",
+      "mimeType": "application/json",
+      "_meta": {
+        "fastmcp": {
+          "tags": [],
+          "skill": {
+            "name": "manage-presentations",
+            "is_manifest": true
+          }
+        }
+      }
+    }
+  ],
+  "resourceTemplates": [
+    {
+      "name": "deck_resource",
+      "uriTemplate": "presentation://decks/{deck_id}",
+      "description": "Return a deck's metadata + slide count (mirrors get_deck).",
+      "mimeType": "application/json",
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "task_resource",
+      "uriTemplate": "presentation://tasks/{task_id}",
+      "description": "Return an async task's status (mirrors get_task).",
+      "mimeType": "application/json",
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "create-presentation_files",
+      "uriTemplate": "skill://create-presentation/{path*}",
+      "description": "Access files within create-presentation",
+      "mimeType": "application/octet-stream",
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "manage-presentations_files",
+      "uriTemplate": "skill://manage-presentations/{path*}",
+      "description": "Access files within manage-presentations",
+      "mimeType": "application/octet-stream",
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    }
+  ]
+}
