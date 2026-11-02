@@ -34,30 +34,29 @@ test("every MCP endpoint in the docs is the one in server.json", () => {
   assert.ok(found > 0);
 });
 
-test("VS Code install links point at the endpoint", () => {
-  let found = 0;
-  for (const path of docs) {
-    for (const [link] of readText(path).matchAll(/https:\/\/vscode\.dev\/redirect\/mcp\/install\?[^)\s]+/g)) {
-      const config = JSON.parse(new URL(link).searchParams.get("config"));
-      assert.deepEqual(config, { type: "http", url: endpoint }, path);
-      found += 1;
-    }
-  }
-  assert.ok(found > 0);
-});
+// Each client's install link encodes the server config its own way.
+const installLinks = {
+  "VS Code": [/https:\/\/vscode\.dev\/redirect\/mcp\/install\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(url.searchParams.get("config"))], { type: "http", url: endpoint }],
+  "VS Code Insiders": [/https:\/\/insiders\.vscode\.dev\/redirect\/mcp\/install\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(url.searchParams.get("config"))], { type: "http", url: endpoint }],
+  "Visual Studio": [/https:\/\/vs-open\.link\/mcp-install\?[^)\s]+/g, (url) => { const { name, ...config } = JSON.parse(decodeURIComponent(url.search.slice(1))); return [name, config]; }, { type: "http", url: endpoint }],
+  Cursor: [/https:\/\/cursor\.com\/en\/install-mcp\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(Buffer.from(url.searchParams.get("config"), "base64").toString())], { url: endpoint }],
+  Kiro: [/https:\/\/kiro\.dev\/launch\/mcp\/add\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(url.searchParams.get("config"))], { url: endpoint }],
+};
 
-test("Cursor install links point at the endpoint", () => {
-  let found = 0;
-  for (const path of docs) {
-    for (const [link] of readText(path).matchAll(/https:\/\/cursor\.com\/en\/install-mcp\?[^)\s]+/g)) {
-      const params = new URL(link).searchParams;
-      assert.equal(params.get("name"), "presentations-ai", path);
-      assert.deepEqual(JSON.parse(Buffer.from(params.get("config"), "base64").toString()), { url: endpoint }, path);
-      found += 1;
+for (const [client, [pattern, parse, expected]] of Object.entries(installLinks)) {
+  test(`${client} install links point at the endpoint`, () => {
+    let found = 0;
+    for (const path of docs) {
+      for (const [link] of readText(path).matchAll(pattern)) {
+        const [name, config] = parse(new URL(link));
+        assert.equal(name, "presentations-ai", `${path}: ${client} name`);
+        assert.deepEqual(config, expected, `${path}: ${client} config`);
+        found += 1;
+      }
     }
-  }
-  assert.ok(found > 0);
-});
+    assert.ok(found > 0, `no ${client} install link found`);
+  });
+}
 
 test("every JSON example parses", () => {
   for (const path of docs) {

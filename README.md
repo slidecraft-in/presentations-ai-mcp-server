@@ -9,7 +9,10 @@ Create designed slide decks from a topic or your notes, apply your brand, then s
 download them, from any MCP client.
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://vscode.dev/redirect/mcp/install?name=presentations-ai&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_server-24bfa5)](https://insiders.vscode.dev/redirect/mcp/install?name=presentations-ai&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D&quality=insiders)
+[![Install in Visual Studio](https://img.shields.io/badge/Visual_Studio-Install_server-C16FDE)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22presentations-ai%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D)
 [![Install in Cursor](https://img.shields.io/badge/Cursor-Install_server-000000)](https://cursor.com/en/install-mcp?name=presentations-ai&config=eyJ1cmwiOiJodHRwczovL2FwaS5wcmVzZW50YXRpb25zLmFpL21jcCJ9)
+[![Install in Kiro](https://img.shields.io/badge/Kiro-Install_server-9046FF)](https://kiro.dev/launch/mcp/add?name=presentations-ai&config=%7B%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D)
 
 ## Endpoint
 
@@ -71,6 +74,8 @@ Share my "Q3 results" deck with teammate@example.com as a viewer.
 - **ChatGPT**: [docs/clients/chatgpt.md](docs/clients/chatgpt.md)
 - **Cursor**: [docs/clients/cursor.md](docs/clients/cursor.md)
 - **VS Code**: [docs/clients/vs-code.md](docs/clients/vs-code.md)
+- **Visual Studio**: [docs/clients/visual-studio.md](docs/clients/visual-studio.md)
+- **Kiro**: [docs/clients/kiro.md](docs/clients/kiro.md)
 - **Cline**: [docs/clients/cline.md](docs/clients/cline.md)
 - **Gemini CLI**: [docs/clients/gemini-cli.md](docs/clients/gemini-cli.md)
 

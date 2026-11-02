@@ -1,6 +1,7 @@
 # Connect from VS Code (GitHub Copilot agent mode)
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://vscode.dev/redirect/mcp/install?name=presentations-ai&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_server-24bfa5)](https://insiders.vscode.dev/redirect/mcp/install?name=presentations-ai&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D&quality=insiders)
 
 Or add it by hand to your workspace's `.vscode/mcp.json` or your user-level `mcp.json`:
 
