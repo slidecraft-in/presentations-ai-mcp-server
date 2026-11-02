@@ -1,6 +1,9 @@
 # Connect from Cursor
 
-Add the server to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_server-000000)](https://cursor.com/en/install-mcp?name=presentations-ai&config=eyJ1cmwiOiJodHRwczovL2FwaS5wcmVzZW50YXRpb25zLmFpL21jcCJ9)
+
+Or add the server by hand to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one
+project):
 
 ```json
 {
