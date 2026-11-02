@@ -1,5 +1,9 @@
 # Presentations.AI MCP Server
 
+[![CI](https://github.com/slidecraft-in/presentations-ai-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/slidecraft-in/presentations-ai-mcp-server/actions/workflows/ci.yml)
+[![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%2Fai.presentations%252Fpresentations-ai%2Fversions%2Flatest&query=%24.server.version&label=MCP%20Registry&logo=modelcontextprotocol)](https://registry.modelcontextprotocol.io/?q=ai.presentations%2Fpresentations-ai)
+[![License: MIT](https://img.shields.io/github/license/slidecraft-in/presentations-ai-mcp-server)](LICENSE)
+
 Official Model Context Protocol server for [Presentations.AI](https://www.presentations.ai).
 Create designed slide decks from a topic or your notes, apply your brand, then share or
 download them, from any MCP client.
