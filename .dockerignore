@@ -5,6 +5,7 @@ npm-debug.log*
 .gitignore
 docs
 scripts
+test
 *.md
 .DS_Store
 .env

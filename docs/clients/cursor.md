@@ -22,11 +22,14 @@ Presentations.AI sign-in when Cursor asks.
   "mcpServers": {
     "presentations-ai": {
       "url": "https://api.presentations.ai/mcp",
-      "headers": { "Authorization": "Bearer pai_live_..." }
+      "headers": { "Authorization": "Bearer ${env:PRESENTATIONSAI_API_KEY}" }
     }
   }
 }
 ```
+
+Cursor reads `PRESENTATIONSAI_API_KEY` from your environment, so the key stays out of
+`mcp.json`.
 
 The tools are listed in the [README](../../README.md#tools).
 

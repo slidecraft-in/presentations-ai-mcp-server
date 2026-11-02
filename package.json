@@ -9,9 +9,14 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "snapshot": "node scripts/snapshot.js"
+    "snapshot": "node scripts/snapshot.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
   }
 }
