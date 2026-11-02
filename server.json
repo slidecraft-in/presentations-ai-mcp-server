@@ -19,12 +19,21 @@
   ],
   "repository": {
     "url": "https://github.com/slidecraft-in/presentations-ai-mcp-server",
-    "source": "github"
+    "source": "github",
+    "id": "1242077665"
   },
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://api.presentations.ai/mcp"
+      "url": "https://api.presentations.ai/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Optional. An API key as `Bearer pai_live_...`. Leave unset to sign in with OAuth.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
     }
   ]
 }

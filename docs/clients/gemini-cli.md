@@ -43,6 +43,9 @@ browser for Presentations.AI sign-in.
 }
 ```
 
+This stores the key in plain text in `settings.json`, so keep the file private and out of
+version control. Signing in with a browser avoids storing a key.
+
 The tools are listed in the [README](../../README.md#tools).
 
 ## Reference

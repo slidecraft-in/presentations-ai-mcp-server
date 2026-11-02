@@ -1,0 +1,44 @@
+name: Bug report
+description: A setup step, the stdio wrapper, or a listing file doesn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste an API key or an `Authorization` header. Report security problems privately through
+        [Report a vulnerability](https://github.com/slidecraft-in/presentations-ai-mcp-server/security/advisories/new).
+  - type: dropdown
+    id: client
+    attributes:
+      label: Client
+      options:
+        - Claude (claude.ai or Claude Desktop)
+        - Claude Code
+        - ChatGPT
+        - Cursor
+        - VS Code
+        - Cline
+        - Gemini CLI
+        - Stdio wrapper or Docker image
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: sign-in
+    attributes:
+      label: Sign-in method
+      options:
+        - Browser sign-in (OAuth)
+        - API key
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Include the tool name and the exact error message.
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When it happened
+      description: Date and time, with your time zone.

@@ -54,9 +54,15 @@ function remote() {
   return upstream;
 }
 
+const HTTP_MESSAGES = {
+  401: `Presentations.AI rejected the API key (HTTP 401). Check PRESENTATIONSAI_API_KEY, or create a key at ${KEYS_URL}.`,
+  403: "Presentations.AI refused the request (HTTP 403): the API key doesn't allow this action.",
+  429: "Presentations.AI is limiting requests right now (HTTP 429). Wait a moment, then try again.",
+};
+
 function describe(error) {
-  if (error instanceof StreamableHTTPError && error.code === 401) {
-    return `Presentations.AI rejected the API key (HTTP 401). Check PRESENTATIONSAI_API_KEY, or create a key at ${KEYS_URL}.`;
+  if (error instanceof StreamableHTTPError && HTTP_MESSAGES[error.code]) {
+    return HTTP_MESSAGES[error.code];
   }
   const cause = error?.cause?.message ? ` (${error.cause.message})` : "";
   return `Presentations.AI request failed: ${error?.message ?? error}${cause}`;
@@ -80,7 +86,12 @@ async function main() {
   }
 
   const server = new Server(
-    { name: "ai.presentations/presentations-ai", version: pkg.version },
+    {
+      name: "ai.presentations/presentations-ai",
+      title: "Presentations.AI",
+      version: pkg.version,
+      websiteUrl: "https://www.presentations.ai",
+    },
     { capabilities: { tools: {}, prompts: {}, resources: {} }, instructions },
   );
 
@@ -114,6 +125,11 @@ async function main() {
   }
 
   await server.connect(new StdioServerTransport());
+}
+
+// As PID 1 in a container, Node ignores SIGTERM unless it is handled.
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.on(signal, () => process.exit(0));
 }
 
 main().catch((error) => {

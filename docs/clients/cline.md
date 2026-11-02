@@ -30,6 +30,8 @@ Then choose **Authorize OAuth** and sign in to Presentations.AI in the browser.
 
 Keep `"type": "streamableHttp"`: without it Cline falls back to the legacy SSE transport.
 Create the API key at [api.presentations.ai](https://api.presentations.ai/#/apikeys).
+This stores the key in plain text in Cline's MCP settings file, so keep that file private.
+The CLI's browser sign-in avoids storing a key.
 
 The tools are listed in the [README](../../README.md#tools).
 

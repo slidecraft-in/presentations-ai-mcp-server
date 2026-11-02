@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Account, credits, or deck help
+    url: https://docs.presentations.ai/docs/support
+    about: Questions about your Presentations.AI account go to support.
+  - name: Report a security problem
+    url: https://github.com/slidecraft-in/presentations-ai-mcp-server/security/advisories/new
+    about: Report vulnerabilities privately, not in a public issue.

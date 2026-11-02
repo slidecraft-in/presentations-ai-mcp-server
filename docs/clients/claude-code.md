@@ -9,10 +9,15 @@ the browser. To sign in from your shell instead, run `claude mcp login presentat
 
 ## With an API key
 
+Set `PRESENTATIONSAI_API_KEY` in your environment, then run:
+
 ```bash
 claude mcp add --transport http presentationsai https://api.presentations.ai/mcp \
-  --header "Authorization: Bearer pai_live_..."
+  --header 'Authorization: Bearer ${PRESENTATIONSAI_API_KEY}'
 ```
+
+The single quotes keep the reference as written. Claude Code reads the variable when it
+loads the server, so the key isn't stored in its config.
 
 The tools are listed in the [README](../../README.md#tools).
 
