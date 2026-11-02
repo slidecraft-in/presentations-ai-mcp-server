@@ -1,10 +1,6 @@
-# Connect from VS Code (GitHub Copilot Chat + MCP)
+# Connect from VS Code (GitHub Copilot agent mode)
 
-VS Code (1.95+) supports MCP servers through GitHub Copilot Chat's agent mode.
-
-## Configuration
-
-Add to your workspace's `.vscode/mcp.json` or user-level `mcp.json`:
+Add to your workspace's `.vscode/mcp.json` or your user-level `mcp.json`:
 
 ```json
 {
@@ -17,18 +13,35 @@ Add to your workspace's `.vscode/mcp.json` or user-level `mcp.json`:
 }
 ```
 
-Reload VS Code. In agent mode, the 5 Presentations.AI tools appear in the
-tool picker. On first invocation, a browser opens for OAuth sign-in.
+When the server asks for sign-in, approve the request and sign in to Presentations.AI in
+the browser.
 
-## Tools available
+## With an API key
 
-- `create_presentation_from_topic`
-- `create_single_slide`
-- `create_presentation_from_content`
-- `create_presentation_from_file` (≤ 5 MB)
-- `check_job_status`
+VS Code prompts for the key once and keeps it out of the file:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "presentations-ai-key",
+      "description": "Presentations.AI API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "presentations-ai": {
+      "type": "http",
+      "url": "https://api.presentations.ai/mcp",
+      "headers": { "Authorization": "Bearer ${input:presentations-ai-key}" }
+    }
+  }
+}
+```
+
+The tools are listed in the [README](../../README.md#tools).
 
 ## Reference
 
-- VS Code MCP docs: https://code.visualstudio.com/docs/copilot/chat/mcp-servers
-- Presentations.AI API reference: https://console.presentations.ai/apiref/docs/
+- VS Code MCP docs: https://code.visualstudio.com/docs/agent-customization/mcp-servers

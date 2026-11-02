@@ -1,7 +1,14 @@
 node_modules
-npm-debug.log
+npm-debug.log*
 .git
+.github
 .gitignore
 docs
+scripts
 *.md
 .DS_Store
+.env
+.env.*
+*.pem
+.mcpregistry*
+.mcp_publisher_token
