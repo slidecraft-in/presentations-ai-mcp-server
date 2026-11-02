@@ -46,6 +46,19 @@ test("VS Code install links point at the endpoint", () => {
   assert.ok(found > 0);
 });
 
+test("Cursor install links point at the endpoint", () => {
+  let found = 0;
+  for (const path of docs) {
+    for (const [link] of readText(path).matchAll(/https:\/\/cursor\.com\/en\/install-mcp\?[^)\s]+/g)) {
+      const params = new URL(link).searchParams;
+      assert.equal(params.get("name"), "presentations-ai", path);
+      assert.deepEqual(JSON.parse(Buffer.from(params.get("config"), "base64").toString()), { url: endpoint }, path);
+      found += 1;
+    }
+  }
+  assert.ok(found > 0);
+});
+
 test("every JSON example parses", () => {
   for (const path of docs) {
     for (const [, block] of readText(path).matchAll(/```json\n([\s\S]*?)```/g)) {
