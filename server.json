@@ -30,7 +30,6 @@
         {
           "name": "Authorization",
           "description": "Optional. An API key as `Bearer pai_live_...`. Leave unset to sign in with OAuth.",
-          "isRequired": false,
           "isSecret": true
         }
       ]
