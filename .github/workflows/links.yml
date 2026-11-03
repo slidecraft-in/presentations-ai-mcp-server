@@ -20,13 +20,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # chatgpt.com and claude.ai block automated requests; the VS Code redirect and the MCP
-      # endpoint don't answer a plain GET with 200. The tests check those URLs instead.
+      # chatgpt.com and claude.ai block automated requests; the VS Code and Visual Studio install
+      # links redirect into the editor, and the MCP endpoint doesn't answer a plain GET with 200.
+      # The tests check those URLs instead.
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: >-
             --no-progress
             --exclude '^https://(chatgpt\.com|claude\.ai)'
-            --exclude '^https://vscode\.dev/redirect/'
+            --exclude '^https://(insiders\.)?vscode\.dev/redirect/'
+            --exclude '^https://vs-open\.link/'
             --exclude '^https://api\.presentations\.ai/mcp$'
             './**/*.md'
