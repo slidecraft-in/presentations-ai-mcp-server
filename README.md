@@ -122,27 +122,34 @@ an error asking for one. To refresh the snapshot from the live server, set
 |---|---|
 | MCP requests | 300 per minute per sign-in or API key |
 | REST requests | 200 per minute per API key |
-| Generation time | Usually 2 to 4 minutes for a 10-slide deck |
+| Generation time | A few minutes |
 | Prompt and pasted text | 200,000 characters each |
 
 Over the limit, the endpoint answers `429` with `Retry-After`, `X-RateLimit-Limit`,
 `X-RateLimit-Remaining`, and `X-RateLimit-Reset`. Wait until `Retry-After`, then retry.
 
-A tool that fails returns an error result with a message:
+A tool that fails returns an error result with a message. The messages below come from the
+tools the server runs itself, such as `create_presentation`, `get_export`, and `share_deck`.
+Tools built on the REST API, such as `create_outline`, `list_decks`, and `get_deck`, return
+the REST API's own message instead.
 
 | Message | Meaning | What to do |
 |---|---|---|
-| `unauthenticated` | The sign-in expired or the key was revoked. | Sign in again, or use an active key. Retrying unchanged won't help. |
+| `unauthenticated` | The account lost access during the call. | Sign in again, or use an active key. Retrying unchanged won't help. |
 | `forbidden: the token's scopes do not permit this` | The connection's scopes don't cover the tool. | Reconnect with the scopes it needs. |
 | `this feature is not available on the workspace's plan` | The plan doesn't include the feature. | Change plan. |
 | `insufficient credits to generate a deck` | The workspace can't fund the generation. | Add credits. `whoami` shows the balance. |
 | `attached files are still being processed; retry shortly` | Sources aren't ready yet. | Retry after a short wait. |
 | `request_id was already used for a different request; pass a new one` | A `request_id` was reused with different input. | Pass a new `request_id`. |
 
+An expired sign-in or a revoked key never reaches a tool: the endpoint answers `401`, and
+the client asks you to sign in again.
+
 Retries: tools annotated `idempotentHint` are safe to repeat. Repeating an identical
 `create_presentation` call returns the same deck rather than spending credits again; pass
-a new `request_id` for another copy. Every `create_outline` call spends credits, so don't
-repeat one that may have succeeded. REST error codes and retry rules are in the
+a new `request_id` for another copy. `create_outline` takes a retry key, `Idempotency-Key`:
+retrying with the same key after the outline was delivered is refused and not charged, and
+a new key drafts and charges another outline. REST error codes and retry rules are in the
 [API reference](https://docs.presentations.ai/docs/api#errors-and-asynchronous-failures).
 
 ## Pricing
@@ -158,7 +165,8 @@ packs: [presentations.ai/pricing](https://www.presentations.ai/pricing).
   allowed to use are hidden.
 - For read-only access, sign in with read scopes only (`workspace:read`, `projects:read`,
   `decks:read`, `brand_kits:read`, `credits:view`), or create an API key with the
-  **Read-only** preset. The connection then sees only the tools that read.
+  **Read-only** preset. The connection then sees only the tools that read, plus
+  `send_feedback`.
 - Seven tools only read. The other six change or share work and carry MCP's
   `destructiveHint` annotation, so clients can ask before running them:
   `create_presentation` and `create_outline` spend credits, `share_deck` creates a public
