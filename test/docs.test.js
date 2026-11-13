@@ -34,10 +34,16 @@ test("every MCP endpoint in the docs is the one in server.json", () => {
   assert.ok(found > 0);
 });
 
+// VS Code install links: `vscode:mcp/install?{json}`, wrapped in vscode.dev/redirect?url= so GitHub renders them.
+function vscodeInstall(url) {
+  const { name, ...config } = JSON.parse(decodeURIComponent(url.searchParams.get("url").split("mcp/install?")[1]));
+  return [name, config];
+}
+
 // Each client's install link encodes the server config its own way.
 const installLinks = {
-  "VS Code": [/https:\/\/vscode\.dev\/redirect\/mcp\/install\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(url.searchParams.get("config"))], { type: "http", url: endpoint }],
-  "VS Code Insiders": [/https:\/\/insiders\.vscode\.dev\/redirect\/mcp\/install\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(url.searchParams.get("config"))], { type: "http", url: endpoint }],
+  "VS Code": [/https:\/\/vscode\.dev\/redirect\?url=vscode%3A[^)\s]+/g, vscodeInstall, { type: "http", url: endpoint }],
+  "VS Code Insiders": [/https:\/\/vscode\.dev\/redirect\?url=vscode-insiders%3A[^)\s]+/g, vscodeInstall, { type: "http", url: endpoint }],
   "Visual Studio": [/https:\/\/vs-open\.link\/mcp-install\?[^)\s]+/g, (url) => { const { name, ...config } = JSON.parse(decodeURIComponent(url.search.slice(1))); return [name, config]; }, { type: "http", url: endpoint }],
   Cursor: [/https:\/\/cursor\.com\/en\/install-mcp\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(Buffer.from(url.searchParams.get("config"), "base64").toString())], { url: endpoint }],
   Kiro: [/https:\/\/kiro\.dev\/launch\/mcp\/add\?[^)\s]+/g, (url) => [url.searchParams.get("name"), JSON.parse(url.searchParams.get("config"))], { url: endpoint }],

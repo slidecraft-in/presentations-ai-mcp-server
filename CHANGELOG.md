@@ -5,6 +5,12 @@ Changes to the hosted server's tools and to this repo, newest first.
 ## Unreleased
 
 - New tool `send_feedback`: sends a note the user approved to the Presentations.AI team.
+- Snapshot and README match the current tools: `get_task` waits up to 50 s, `send_feedback`
+  carries `destructiveHint`, and `create_outline` retries use `request_id`.
+- Credit costs per quality tier and the zero-balance rule are documented. The README no
+  longer lists rate-limit numbers.
+- The VS Code and VS Code Insiders buttons open VS Code's `mcp/install` link through the
+  vscode.dev redirect.
 
 ## 1.1.0 - 2026-11-03
 
