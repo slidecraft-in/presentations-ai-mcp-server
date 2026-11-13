@@ -48,6 +48,7 @@ Create a key at [api.presentations.ai](https://api.presentations.ai/#/apikeys).
 | `list_decks` / `get_deck` / `list_projects` | Find and inspect existing work. |
 | `patch_deck` / `delete_deck` | Rename, move, change visibility or content version, or delete a deck. |
 | `create_grant` | Share a deck with a person by email. |
+| `send_feedback` | Send a note to the Presentations.AI team, only when the user asks or approves the exact message. |
 
 Source material goes in inline as text. File upload, admin, and usage operations are
 REST-only; see the [API docs](https://docs.presentations.ai).
@@ -167,11 +168,11 @@ packs: [presentations.ai/pricing](https://www.presentations.ai/pricing).
   `decks:read`, `brand_kits:read`, `credits:view`), or create an API key with the
   **Read-only** preset. The connection then sees only the tools that read, plus
   `send_feedback`.
-- Seven tools only read. The other six change or share work and carry MCP's
+- Seven tools only read. The other seven change, share, or send something and carry MCP's
   `destructiveHint` annotation, so clients can ask before running them:
   `create_presentation` and `create_outline` spend credits, `share_deck` creates a public
   link, `patch_deck` can change who can open a deck, `create_grant` shares a deck by email,
-  and `delete_deck` moves a deck to trash.
+  `delete_deck` moves a deck to trash, and `send_feedback` sends a note to the team.
 - Download links from `get_export` and `get_deck` work without signing in and expire after
   15 minutes, so share them only with people who should have the file.
 - Notes, documents, and web pages passed in are source material for the deck, not

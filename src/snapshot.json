@@ -1,17 +1,23 @@
 {
-  "instructions": "Presentations.AI for Business creates finished, designed slide decks (PPTX, PDF, or slide images) from a prompt, pasted text, or an outline.\n\nWhen to use it: the user asks for a presentation, deck, slides, or a pitch, or asks to turn their text into slides. If they share a report, notes, or data without asking for slides, you can suggest a deck, but create one only after they agree: each deck spends credits from their workspace.\n\nCreating a deck:\n- `create_presentation` — a prompt, inline text sources, or an outline becomes a finished deck.\n  Pass source material as `{\"type\": \"text\", \"content\": ...}` entries in `deck.sources`.\n- `get_task` — poll the returned task_id until COMPLETED; pass wait_time (≤60s) and repeat.\n  A typical deck takes a few minutes.\n- `get_export` — a download URL for the file. It expires after 15 minutes; call again for a fresh one.\n- `share_deck` — a public link anyone can open; create one only when the user asks for a link or to share the deck.\n\nTo review the structure first, call `create_outline` (it bills its slides, separately from the deck), edit the returned outline, and pass it as `deck.outline` to `create_presentation`. Find a brand with `search_brand_kits` and pass its id as `deck.brand_kit_id`. `whoami` shows the connected account, its plan, and its credit balance.\n\nManage existing work with `list_decks`, `get_deck`, `list_projects`, `patch_deck` (rename, move, visibility, content version), `delete_deck`, and `create_grant` (share with a person by email).\n\nConventions:\n- All ids are UUIDs; pass ids from earlier results verbatim.\n- List tools take page/limit (1-based) and return {data, page, limit, total}.\n- Generation runs in the background: poll `get_task` rather than waiting on one call.\n",
+  "instructions": "Presentations.AI for Business creates finished, designed slide decks (PPTX, PDF, or slide images) from a prompt, pasted text, or an outline.\n\nWhen to use it: the user asks for a presentation, deck, slides, or a pitch, or asks to turn their text into slides. Create a deck only when the user asks for one: each deck spends credits from their workspace.\n\nCreating a deck:\n- `create_presentation` — a prompt, inline text sources, or an outline becomes a finished deck.\n  Pass source material as `{\"type\": \"text\", \"content\": ...}` entries in `deck.sources`.\n  Files can't be uploaded through this connection; the Presentations.AI desktop extension's `upload_local_files` returns a `file_id` to pass as `{\"type\": \"file\", \"file_id\": ...}`.\n- `get_task` — poll the returned task_id until COMPLETED; pass wait_time (≤60s) and repeat.\n  A typical deck takes a few minutes.\n- `get_export` — a download URL for the file. It expires after 15 minutes; call again for a fresh one.\n- `share_deck` — a public link anyone can open; create one only when the user asks for a link or to share the deck.\n\nTo review the structure first, call `create_outline` (it bills its slides, separately from the deck), edit the returned outline, and pass it as `deck.outline` to `create_presentation`. Find a brand with `search_brand_kits` and pass its id as `deck.brand_kit_id`. `whoami` shows the connected account, its plan, and its credit balance.\n\nManage existing work with `list_decks`, `get_deck`, `list_projects`, `patch_deck` (rename, move, visibility, content version), `delete_deck`, and `create_grant` (share with a person by email).\n\nEvery tool but `send_feedback` takes an optional `intent`: one short sentence on why you are calling it. When a result is confusing or wrong, or the user wants something no tool can do, report it with `send_feedback`.\n\nConventions:\n- All ids are UUIDs; pass ids from earlier results verbatim.\n- List tools take page/limit (1-based) and return {data, page, limit, total}.\n- Generation runs in the background: poll `get_task` rather than waiting on one call.\n",
   "tools": [
     {
       "name": "whoami",
-      "title": "Whoami",
+      "title": "Check account and credits",
       "description": "Show the connected account's email, workspace, role, plan, and credit balance.\n\nUse it when the user asks which account is connected, its plan, or its credits left.",
       "inputSchema": {
         "type": "object",
-        "additionalProperties": false,
-        "properties": {}
+        "properties": {
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
+          }
+        },
+        "additionalProperties": false
       },
       "outputSchema": {
-        "description": "The connected account, its workspace, role and plan, and the credit balance.",
+        "type": "object",
         "properties": {
           "email": {
             "type": "string"
@@ -44,9 +50,10 @@
           "plan",
           "credits_balance"
         ],
-        "type": "object"
+        "description": "The connected account, its workspace, role and plan, and the credit balance."
       },
       "annotations": {
+        "title": "Check account and credits",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -59,15 +66,14 @@
     },
     {
       "name": "create_presentation",
-      "title": "Create Presentation",
-      "description": "Create a finished, designed presentation from a prompt, text, or an outline.\n\nUse it when the user asks for a presentation, deck, slides, a pitch, or a\nPowerPoint. The deck is saved in the user's Presentations.AI workspace and can\nbe exported as PPTX, PDF or slide images, or shared by link.\n\n`deck` takes the same fields as `POST /decks`: e.g. `prompt`, `sources`\n(`{\"type\": \"text\", \"content\": ...}`), `slide_count`, `audience`,\n`level_of_detail`, `deck_purpose`, `brand_kit_id` (find one with\n`search_brand_kits`), or an edited `outline` from `create_outline`.\nRetrying an identical call returns the same deck; pass a new `request_id` to\ngenerate another copy.\n\nGeneration spends credits and takes a few minutes in the background: poll\n`task_id` with `get_task`, then fetch the file with `get_export`, or a public\nlink with `share_deck` when the user asks for one.",
+      "title": "Create presentation",
+      "description": "Create a finished, designed presentation from a prompt, text, or an outline.\n\nUse it when the user asks for a presentation, deck, slides, a pitch, or a\nPowerPoint. The deck is saved in the user's Presentations.AI workspace and can\nbe exported as PPTX, PDF or slide images, or shared by link.\n\n`deck` takes e.g. `prompt`, `sources` (`{\"type\": \"text\", \"content\": ...}`, or\n`{\"type\": \"file\", \"file_id\": ...}` for a file uploaded with the desktop extension's\n`upload_local_files`), `slide_count`, `audience`, `level_of_detail`, `deck_purpose`,\n`brand_kit_id` (find one with `search_brand_kits`), or an edited `outline` from\n`create_outline`.\nRetrying an identical call returns the same deck; pass a new `request_id` to\ngenerate another copy.\n\nGeneration spends credits and takes a few minutes in the background: poll\n`task_id` with `get_task`, then fetch the file with `get_export`, or a public\nlink with `share_deck` when the user asks for one.",
       "inputSchema": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "deck": {
             "additionalProperties": false,
-            "description": "`POST /decks` input; the outline schema is enforced on submit, not spelled out here.",
+            "description": "The presentation to create; the outline schema is enforced on submit, not spelled out.",
             "oneOf": [
               {
                 "anyOf": [
@@ -172,7 +178,7 @@
                               "type": "string"
                             },
                             "file_id": {
-                              "description": "`file_id` from `POST /files`; its extraction must have completed (409 `SOURCES_NOT_READY` otherwise).",
+                              "description": "`file_id` from `upload_local_files` (in the Presentations.AI desktop extension); its extraction must have completed (409 `SOURCES_NOT_READY` otherwise).",
                               "format": "uuid",
                               "type": "string"
                             }
@@ -194,7 +200,7 @@
                   }
                 ],
                 "default": null,
-                "description": "Inline text and/or references to files uploaded through POST /files."
+                "description": "Inline text and/or references to files uploaded through `upload_local_files` (in the Presentations.AI desktop extension)."
               },
               "name": {
                 "default": "Untitled Presentation",
@@ -389,7 +395,7 @@
                   }
                 ],
                 "default": null,
-                "description": "Style the deck as a brand: an `id` from `GET /brand-kits`. Omitted: no brand kit."
+                "description": "Style the deck as a brand: an `id` from `search_brand_kits`. Omitted: no brand kit."
               },
               "deep_search": {
                 "default": false,
@@ -500,7 +506,7 @@
                   }
                 ],
                 "default": null,
-                "description": "The company's web domain (e.g. `acme.com`); with `company`, seeds research and the brand lookup."
+                "description": "The company's web domain (e.g. `example.com`); with `company`, seeds research and the brand lookup."
               },
               "graphic_types": {
                 "anyOf": [
@@ -552,14 +558,20 @@
             ],
             "default": null,
             "description": "Optional idempotency key. Omitted: retrying an identical request returns the same deck; after a FAILED run, or once that deck is deleted, it starts a new one."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
           "deck"
-        ]
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
-        "description": "A dispatched deck-generation run: the new deck, its task handle, and app link.",
+        "type": "object",
         "properties": {
           "deck_id": {
             "format": "uuid",
@@ -590,9 +602,10 @@
           "status",
           "deck_url"
         ],
-        "type": "object"
+        "description": "A dispatched deck-generation run: the new deck, its task handle, and app link."
       },
       "annotations": {
+        "title": "Create presentation",
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
@@ -606,11 +619,10 @@
     },
     {
       "name": "get_task",
-      "title": "Get Task",
+      "title": "Check generation status",
       "description": "Status of an async task (e.g. a presentation generation).\n\nWith wait_time=0, returns an immediate snapshot. With wait_time>0 (capped at\n60s), waits until the task reaches COMPLETED/FAILED or the window elapses,\nthen returns the latest status. Once a generation is COMPLETED, `get_export`\nreturns its file.",
       "inputSchema": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "task_id": {
             "format": "uuid",
@@ -619,14 +631,20 @@
           "wait_time": {
             "default": 20,
             "type": "integer"
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
           "task_id"
-        ]
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
-        "description": "An async task's status.",
+        "type": "object",
         "properties": {
           "task_id": {
             "format": "uuid",
@@ -680,9 +698,10 @@
           "subject_id",
           "error"
         ],
-        "type": "object"
+        "description": "An async task's status."
       },
       "annotations": {
+        "title": "Check generation status",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -695,23 +714,28 @@
     },
     {
       "name": "get_export",
-      "title": "Get Export",
+      "title": "Get download link",
       "description": "Latest export artifact for a deck, with a short-lived download URL.",
       "inputSchema": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "deck_id": {
             "format": "uuid",
             "type": "string"
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
           "deck_id"
-        ]
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
-        "description": "A produced export artifact with a short-lived, anonymous download URL.",
+        "type": "object",
         "properties": {
           "deck_id": {
             "format": "uuid",
@@ -736,9 +760,10 @@
           "format",
           "download_url"
         ],
-        "type": "object"
+        "description": "A produced export artifact with a short-lived, anonymous download URL."
       },
       "annotations": {
+        "title": "Get download link",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -751,11 +776,10 @@
     },
     {
       "name": "share_deck",
-      "title": "Share Deck",
+      "title": "Share deck by public link",
       "description": "Get or create the deck's public share link and return the URL.\n\nAnyone with the link can open the deck, so use it only when the user asks for a\nlink or to share the deck. Reuses the existing link so the URL is stable; pass\nrotate=true to mint a fresh one (the previous URL stops working).",
       "inputSchema": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "deck_id": {
             "format": "uuid",
@@ -764,14 +788,20 @@
           "rotate": {
             "default": false,
             "type": "boolean"
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
           "deck_id"
-        ]
+        ],
+        "additionalProperties": false
       },
       "outputSchema": {
-        "description": "A deck's public share link.",
+        "type": "object",
         "properties": {
           "deck_id": {
             "format": "uuid",
@@ -788,9 +818,10 @@
           "deck_id",
           "share_url"
         ],
-        "type": "object"
+        "description": "A deck's public share link."
       },
       "annotations": {
+        "title": "Share deck by public link",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": true
@@ -802,8 +833,76 @@
       }
     },
     {
+      "name": "send_feedback",
+      "title": "Send feedback",
+      "description": "Report a confusing or wrong tool result, or a missing capability, to Presentations.AI.\n\nCall it when a result didn't match what the tool described, an error didn't say how to\nfix the call, or the user asked for something no tool can do. It changes nothing in the\nuser's workspace and costs no credits. Don't include the user's private content beyond\nwhat explains the problem.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "description": "What was confusing, wrong or missing, and what you expected.",
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "The tool the feedback is about."
+          },
+          "arguments": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "The arguments you called that tool with, if relevant."
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "description": "Acknowledgement that the feedback was stored."
+      },
+      "annotations": {
+        "title": "Send feedback",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
       "name": "list_projects",
-      "title": "List Projects",
+      "title": "List projects",
       "description": "List projects, or folders with `kind=FOLDER` (optionally one container's children).\n\n`top_level=true` keeps the caller's top level: no parent, or a parent they\ncannot reach. Not with `parent_id`. A project-bound key sees its project and\nthe folders below it, with that project as its top.",
       "inputSchema": {
         "type": "object",
@@ -812,14 +911,16 @@
             "type": "integer",
             "minimum": 1,
             "title": "Page",
-            "default": 1
+            "default": 1,
+            "description": "Page number, starting at 1."
           },
           "limit": {
             "type": "integer",
             "maximum": 200,
             "minimum": 1,
             "title": "Limit",
-            "default": 200
+            "default": 200,
+            "description": "Items per page."
           },
           "kind": {
             "type": "string",
@@ -840,18 +941,25 @@
                 "type": "null"
               }
             ],
-            "title": "Parent Id"
+            "title": "Parent Id",
+            "description": "Only the children of this project or folder."
           },
           "top_level": {
             "type": "boolean",
             "title": "Top Level",
-            "default": false
+            "default": false,
+            "description": "Only your top level: no parent, or one you cannot open. Not with `parent_id`."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": []
       },
       "outputSchema": {
-        "additionalProperties": false,
+        "type": "object",
         "properties": {
           "data": {
             "description": "Items on this page.",
@@ -900,10 +1008,11 @@
           "limit",
           "total"
         ],
-        "title": "Page[MCPProject]",
-        "type": "object"
+        "additionalProperties": false,
+        "title": "Page[MCPProject]"
       },
       "annotations": {
+        "title": "List projects",
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
@@ -920,7 +1029,7 @@
     },
     {
       "name": "search_brand_kits",
-      "title": "Search Brand Kits",
+      "title": "Find brand kits",
       "description": "Search the brand kits you can style a deck with.\n\nUse a result's `id` as `brand_kit_id` when creating a deck. Includes published brands, your\nworkspace's kits and your own unshared kits. A brand limited to approved email domains appears\nonly when your verified email domain is one of them.",
       "inputSchema": {
         "type": "object",
@@ -950,7 +1059,7 @@
               }
             ],
             "title": "Domain",
-            "description": "Exact brand domain, e.g. `acme.com`."
+            "description": "Exact brand domain, e.g. `example.com`."
           },
           "type": {
             "anyOf": [
@@ -975,19 +1084,27 @@
             "type": "integer",
             "minimum": 1,
             "title": "Page",
-            "default": 1
+            "default": 1,
+            "description": "Page number, starting at 1."
           },
           "limit": {
             "type": "integer",
             "maximum": 100,
             "minimum": 1,
             "title": "Limit",
-            "default": 20
+            "default": 20,
+            "description": "Items per page."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": []
       },
       "outputSchema": {
+        "type": "object",
         "properties": {
           "data": {
             "items": {
@@ -996,7 +1113,7 @@
                   "type": "string",
                   "format": "uuid",
                   "title": "Id",
-                  "description": "Pass as `brand_kit_id` to `POST /decks`."
+                  "description": "Pass as `brand_kit_id` to `create_presentation`."
                 },
                 "name": {
                   "type": "string",
@@ -1088,18 +1205,18 @@
             "description": "Items matching the filters across all pages."
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "data",
           "page",
           "limit",
           "total"
         ],
+        "additionalProperties": false,
         "title": "Page[BrandKitMatch]",
         "x-fastmcp-top-level-schema": "Page_BrandKitMatch_"
       },
       "annotations": {
+        "title": "Find brand kits",
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
@@ -1116,7 +1233,7 @@
     },
     {
       "name": "list_decks",
-      "title": "List Decks",
+      "title": "List decks",
       "description": "List accessible decks with project, flag, sort, search, and pagination filters.\n\nDecks that have no slides yet (generation still running, or never completed)\nare omitted; fetch those by id.",
       "inputSchema": {
         "type": "object",
@@ -1131,7 +1248,8 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Project Id",
+            "description": "Only decks in this project; a project-bound key defaults to its own."
           },
           "flag": {
             "anyOf": [
@@ -1147,7 +1265,8 @@
                 "type": "null"
               }
             ],
-            "title": "Flag"
+            "title": "Flag",
+            "description": "Only decks you flagged this way, e.g. `STARRED`."
           },
           "sort": {
             "type": "string",
@@ -1169,26 +1288,34 @@
                 "type": "null"
               }
             ],
-            "title": "Search"
+            "title": "Search",
+            "description": "Only decks whose name contains this text (case-insensitive)."
           },
           "page": {
             "type": "integer",
             "minimum": 1,
             "title": "Page",
-            "default": 1
+            "default": 1,
+            "description": "Page number, starting at 1."
           },
           "limit": {
             "type": "integer",
             "maximum": 200,
             "minimum": 1,
             "title": "Limit",
-            "default": 50
+            "default": 50,
+            "description": "Items per page."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": []
       },
       "outputSchema": {
-        "additionalProperties": false,
+        "type": "object",
         "properties": {
           "data": {
             "description": "Items on this page.",
@@ -1321,10 +1448,11 @@
           "limit",
           "total"
         ],
-        "title": "Page[MCPDeck]",
-        "type": "object"
+        "additionalProperties": false,
+        "title": "Page[MCPDeck]"
       },
       "annotations": {
+        "title": "List decks",
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
@@ -1341,7 +1469,7 @@
     },
     {
       "name": "get_deck",
-      "title": "Get Deck",
+      "title": "Get deck",
       "description": "Fetch deck metadata, latest generation status, and existing export artifacts.\n\nOver MCP, export download URLs open without a key and expire after 15 minutes.",
       "inputSchema": {
         "type": "object",
@@ -1349,7 +1477,13 @@
           "deck_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Deck Id"
+            "title": "Deck Id",
+            "description": "ID of the deck."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
@@ -1357,7 +1491,7 @@
         ]
       },
       "outputSchema": {
-        "description": "A deck with its latest generation status and the files produced from it.",
+        "type": "object",
         "properties": {
           "id": {
             "format": "uuid",
@@ -1508,10 +1642,11 @@
           "status",
           "exports"
         ],
-        "title": "MCPDeckDetail",
-        "type": "object"
+        "description": "A deck with its latest generation status and the files produced from it.",
+        "title": "MCPDeckDetail"
       },
       "annotations": {
+        "title": "Get deck",
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
@@ -1528,7 +1663,7 @@
     },
     {
       "name": "delete_deck",
-      "title": "Delete Deck",
+      "title": "Delete deck",
       "description": "Soft-delete a deck; the operation is idempotent for an already deleted deck.",
       "inputSchema": {
         "type": "object",
@@ -1536,7 +1671,13 @@
           "deck_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Deck Id"
+            "title": "Deck Id",
+            "description": "ID of the deck."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
@@ -1544,6 +1685,7 @@
         ]
       },
       "annotations": {
+        "title": "Delete deck",
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
@@ -1560,7 +1702,7 @@
     },
     {
       "name": "patch_deck",
-      "title": "Patch Deck",
+      "title": "Update deck",
       "description": "Rename a deck, change who can open it, or move it to another project.\n\nIt can also switch which content version the deck shows. Changing visibility can make the\ndeck public or remove other people's access. It doesn't start generation or create an export.",
       "inputSchema": {
         "type": "object",
@@ -1568,7 +1710,8 @@
           "deck_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Deck Id"
+            "title": "Deck Id",
+            "description": "ID of the deck."
           },
           "name": {
             "anyOf": [
@@ -1631,6 +1774,11 @@
             ],
             "title": "Version",
             "description": "Content version to render; must be one the deck has content for."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
@@ -1638,7 +1786,7 @@
         ]
       },
       "outputSchema": {
-        "description": "A deck: its name, who can open it, its project and its app link.",
+        "type": "object",
         "properties": {
           "id": {
             "format": "uuid",
@@ -1738,10 +1886,11 @@
           "version",
           "origin_version"
         ],
-        "title": "MCPDeck",
-        "type": "object"
+        "description": "A deck: its name, who can open it, its project and its app link.",
+        "title": "MCPDeck"
       },
       "annotations": {
+        "title": "Update deck",
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
@@ -1758,7 +1907,7 @@
     },
     {
       "name": "create_grant",
-      "title": "Create Grant",
+      "title": "Share deck with a person",
       "description": "Share a deck with one person, by user ID or email address, at the given role.\n\nIf they already have access, their role is replaced, which can lower it.",
       "inputSchema": {
         "type": "object",
@@ -1766,7 +1915,8 @@
           "deck_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Deck Id"
+            "title": "Deck Id",
+            "description": "ID of the deck."
           },
           "subject": {
             "type": "string",
@@ -1784,6 +1934,11 @@
             ],
             "title": "DeckGrantRole",
             "description": "Access level to grant."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": [
@@ -1793,7 +1948,7 @@
         ]
       },
       "outputSchema": {
-        "description": "Who the deck is now shared with, and at what role.",
+        "type": "object",
         "properties": {
           "deck_id": {
             "format": "uuid",
@@ -1850,10 +2005,11 @@
           "subject_email",
           "subject"
         ],
-        "title": "MCPGrant",
-        "type": "object"
+        "description": "Who the deck is now shared with, and at what role.",
+        "title": "MCPGrant"
       },
       "annotations": {
+        "title": "Share deck with a person",
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
@@ -1870,8 +2026,8 @@
     },
     {
       "name": "create_outline",
-      "title": "Create Outline",
-      "description": "Generate a stateless outline from a prompt and/or extracted files.\n\nNo deck, session, or generation request is persisted. Referenced files must belong to the\ncaller's workspace and have completed extraction before this request.\n\nBills the outline's slides at the Standard rate (10 credits per slide), once, before it is\nreturned; an empty balance is a 402. Send an `Idempotency-Key` to retry safely: a key that\nalready paid is a 409.",
+      "title": "Draft outline",
+      "description": "Draft a slide-by-slide outline from a prompt or the user's files, without creating a deck. Edit it and pass it as `deck.outline` to `create_presentation`. Each outline charges 10 credits per slide, once, when it is ready, and fails when the workspace has too few credits. A retry with the same idempotency key is refused instead of charged twice.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1884,7 +2040,8 @@
                 "type": "null"
               }
             ],
-            "title": "Accept-Language"
+            "title": "Accept-Language",
+            "description": "Output language when the body sets none; the first tag is used."
           },
           "Idempotency-Key": {
             "anyOf": [
@@ -1895,7 +2052,8 @@
                 "type": "null"
               }
             ],
-            "title": "Idempotency-Key"
+            "title": "Idempotency-Key",
+            "description": "Older name for `Request-Id`; still accepted."
           },
           "prompt": {
             "anyOf": [
@@ -1952,7 +2110,7 @@
                           "type": "string",
                           "format": "uuid",
                           "title": "File Id",
-                          "description": "`file_id` from `POST /files`; its extraction must have completed (409 `SOURCES_NOT_READY` otherwise)."
+                          "description": "`file_id` from `upload_local_files` (in the Presentations.AI desktop extension); its extraction must have completed (409 `SOURCES_NOT_READY` otherwise)."
                         }
                       },
                       "additionalProperties": false,
@@ -1974,7 +2132,7 @@
               }
             ],
             "title": "Sources",
-            "description": "Inline text and/or references to files uploaded through POST /files."
+            "description": "Inline text and/or references to files uploaded through `upload_local_files` (in the Presentations.AI desktop extension)."
           },
           "language": {
             "type": "string",
@@ -2014,128 +2172,145 @@
             ],
             "title": "Level Of Detail",
             "description": "Text density per content item, case-insensitive. Omitted: adapted to the topic and content."
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional: one short sentence on why you are calling this tool, in terms of what the user asked for. Used only to improve this connector."
           }
         },
         "required": []
       },
       "outputSchema": {
+        "type": "object",
         "properties": {
           "outline": {
+            "additionalProperties": false,
+            "description": "An outline to edit and pass back; the writer's raw XML and figure check stay out.\n\n`create_presentation` drops `rawXml` from an outline it is given, and it can run to\n400,000 characters, past what hosts keep of a tool result (EP-20261103 D14).",
             "properties": {
               "documentTitle": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 255
+                    "maxLength": 255,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Documenttitle",
-                "description": "Presentation title; names the deck when no `name` or `deck_title` is given."
+                "default": null,
+                "description": "Presentation title; names the deck when no `name` or `deck_title` is given.",
+                "title": "Documenttitle"
               },
               "hook": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 5000
+                    "maxLength": 5000,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
+                "default": null,
                 "title": "Hook"
               },
               "researchSummary": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 20000
+                    "maxLength": 20000,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
+                "default": null,
                 "title": "Researchsummary"
               },
               "contentLanguage": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Contentlanguage",
-                "description": "Language the outline is written in, as an English name."
+                "default": null,
+                "description": "Language the outline is written in, as an English name.",
+                "title": "Contentlanguage"
               },
               "footerText": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 500
+                    "maxLength": 500,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Footertext",
-                "description": "One-line footer for the whole deck."
+                "default": null,
+                "description": "One-line footer for the whole deck.",
+                "title": "Footertext"
               },
               "imagePrompt": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 5000
+                    "maxLength": 5000,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Imageprompt",
-                "description": "Prompt for the generated cover image."
+                "default": null,
+                "description": "Prompt for the generated cover image.",
+                "title": "Imageprompt"
               },
               "contentMode": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 20
+                    "maxLength": 20,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Contentmode",
-                "description": "`retain` or `condense` when the outline mirrors supplied content; layouts then keep its structure instead of reshaping it."
+                "default": null,
+                "description": "`retain` or `condense` when the outline mirrors supplied content; layouts then keep its structure instead of reshaping it.",
+                "title": "Contentmode"
               },
               "companyName": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 300
+                    "maxLength": 300,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Companyname",
-                "description": "Company the deck is about: the requested `company`, else one detected from the topic."
+                "default": null,
+                "description": "Company the deck is about: the requested `company`, else one detected from the topic.",
+                "title": "Companyname"
               },
               "companyDomain": {
                 "anyOf": [
                   {
-                    "type": "string",
-                    "maxLength": 255
+                    "maxLength": 255,
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "title": "Companydomain",
-                "description": "Domain of `companyName`."
+                "default": null,
+                "description": "Domain of `companyName`.",
+                "title": "Companydomain"
               },
               "audienceQuestions": {
                 "anyOf": [
@@ -2143,131 +2318,117 @@
                     "items": {
                       "type": "string"
                     },
-                    "type": "array",
-                    "maxItems": 9
+                    "maxItems": 9,
+                    "type": "array"
                   },
                   {
                     "type": "null"
                   }
                 ],
+                "default": null,
                 "title": "Audiencequestions"
               },
-              "rawXml": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "maxLength": 400000
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Rawxml"
-              },
-              "figureCheck": {
-                "anyOf": [
-                  {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Figurecheck"
-              },
               "slides": {
+                "description": "Slides in presentation order.",
                 "items": {
+                  "additionalProperties": false,
+                  "description": "One validated slide in a generated or caller-authored outline.",
                   "properties": {
                     "heading": {
-                      "type": "string",
+                      "description": "Slide title; may wrap one key span in `**bold**`.",
                       "maxLength": 2000,
                       "minLength": 1,
                       "title": "Heading",
-                      "description": "Slide title; may wrap one key span in `**bold**`."
+                      "type": "string"
                     },
                     "subheading": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 2000
+                          "maxLength": 2000,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Subheading",
-                      "description": "Optional subtitle; on the cover it is the deck subtitle."
+                      "default": null,
+                      "description": "Optional subtitle; on the cover it is the deck subtitle.",
+                      "title": "Subheading"
                     },
                     "description": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 20000
+                          "maxLength": 20000,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Description",
-                      "description": "Plain-text slide content; the content source when `graphics` is absent."
+                      "default": null,
+                      "description": "Plain-text slide content; the content source when `graphics` is absent.",
+                      "title": "Description"
                     },
                     "category": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 200
+                          "maxLength": 200,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Category",
-                      "description": "Fallback for `useCase` when that is absent."
+                      "default": null,
+                      "description": "Fallback for `useCase` when that is absent.",
+                      "title": "Category"
                     },
                     "useCase": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 200
+                          "maxLength": 200,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Usecase",
-                      "description": "2-4 word slide-purpose label shown above the title; `Cover` and `Section Break` mark those slide kinds."
+                      "default": null,
+                      "description": "2-4 word slide-purpose label shown above the title; `Cover` and `Section Break` mark those slide kinds.",
+                      "title": "Usecase"
                     },
                     "speakerNotes": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 5000
+                          "maxLength": 5000,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Speakernotes",
-                      "description": "Presenter talking points."
+                      "default": null,
+                      "description": "Presenter talking points.",
+                      "title": "Speakernotes"
                     },
                     "visualComposition": {
                       "anyOf": [
                         {
                           "items": {
-                            "type": "string",
                             "maxLength": 100,
-                            "minLength": 1
+                            "minLength": 1,
+                            "type": "string"
                           },
-                          "type": "array",
-                          "maxItems": 20
+                          "maxItems": 20,
+                          "type": "array"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Visualcomposition",
-                      "description": "Ordered graphic types used to pick the layout, starting with `titleandsubtitle`; a comma-separated string is also accepted."
+                      "default": null,
+                      "description": "Ordered graphic types used to pick the layout, starting with `titleandsubtitle`; a comma-separated string is also accepted.",
+                      "title": "Visualcomposition"
                     },
                     "graphicSubtypes": {
                       "anyOf": [
@@ -2275,803 +2436,876 @@
                           "additionalProperties": {
                             "type": "string"
                           },
-                          "type": "object",
-                          "maxProperties": 20
+                          "maxProperties": 20,
+                          "type": "object"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Graphicsubtypes",
-                      "description": "Subtype per graphic type, e.g. `{\"diagram\": \"pyramid\"}`."
+                      "default": null,
+                      "description": "Subtype per graphic type, e.g. `{\"diagram\": \"pyramid\"}`.",
+                      "title": "Graphicsubtypes"
                     },
                     "graphics": {
                       "anyOf": [
                         {
                           "items": {
+                            "additionalProperties": false,
+                            "description": "One typed body graphic on an outline slide.\n\n`type` may carry a subtype suffix (e.g. ``diagram:process``). Tables use\n`rows` (pipe-separated cells, first row = headers) instead of `items`.",
                             "properties": {
                               "type": {
-                                "type": "string",
+                                "description": "Graphic type, e.g. `list_with_description`, `kpi_block`, `table`, `timeline`; only `diagram` and `chart` take a `:subtype` (`diagram:pyramid`).",
                                 "maxLength": 100,
                                 "minLength": 1,
                                 "title": "Type",
-                                "description": "Graphic type, e.g. `list_with_description`, `kpi_block`, `table`, `timeline`; only `diagram` and `chart` take a `:subtype` (`diagram:pyramid`)."
+                                "type": "string"
                               },
                               "heading": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 300
+                                    "maxLength": 300,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Heading",
-                                "description": "Graphic caption, e.g. what a chart measures; expected on charts and diagrams."
+                                "default": null,
+                                "description": "Graphic caption, e.g. what a chart measures; expected on charts and diagrams.",
+                                "title": "Heading"
                               },
                               "items": {
                                 "anyOf": [
                                   {
                                     "items": {
+                                      "additionalProperties": false,
+                                      "description": "One content item inside a structured outline graphic.\n\nFields: `h` head/label, `b` body/explanation,\n`v` value (kpi/chart datum), `s` source/role (quotes), `i` icon hint\n(direct-build), `sub` sub-bullets.",
                                       "properties": {
                                         "h": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 2000
+                                              "maxLength": 2000,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "H",
-                                          "description": "Item head: label, step name, or chart point label."
+                                          "default": null,
+                                          "description": "Item head: label, step name, or chart point label.",
+                                          "title": "H"
                                         },
                                         "b": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 5000
+                                              "maxLength": 5000,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "B",
-                                          "description": "Item body: one explanatory sentence, or the whole text of a `paragraph`."
+                                          "default": null,
+                                          "description": "Item body: one explanatory sentence, or the whole text of a `paragraph`.",
+                                          "title": "B"
                                         },
                                         "v": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "V",
-                                          "description": "Numeric value, chart datum or date marker; `multi_series_chart` items carry ` / `-separated values in series order."
+                                          "default": null,
+                                          "description": "Numeric value, chart datum or date marker; `multi_series_chart` items carry ` / `-separated values in series order.",
+                                          "title": "V"
                                         },
                                         "s": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 500
+                                              "maxLength": 500,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "S",
-                                          "description": "Source or speaker role, e.g. for quotes."
+                                          "default": null,
+                                          "description": "Source or speaker role, e.g. for quotes.",
+                                          "title": "S"
                                         },
                                         "i": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 100
+                                              "maxLength": 100,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "I",
-                                          "description": "Icon hint: a 1-3 word pictogram noun."
+                                          "default": null,
+                                          "description": "Icon hint: a 1-3 word pictogram noun.",
+                                          "title": "I"
                                         },
                                         "sub": {
                                           "anyOf": [
                                             {
                                               "items": {
-                                                "type": "string",
                                                 "maxLength": 2000,
-                                                "minLength": 1
+                                                "minLength": 1,
+                                                "type": "string"
                                               },
-                                              "type": "array",
-                                              "maxItems": 20
+                                              "maxItems": 20,
+                                              "type": "array"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Sub",
-                                          "description": "Sub-bullets under this item."
+                                          "default": null,
+                                          "description": "Sub-bullets under this item.",
+                                          "title": "Sub"
+                                        },
+                                        "sublabel": {
+                                          "anyOf": [
+                                            {
+                                              "maxLength": 40,
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "default": null,
+                                          "description": "Secondary line under the name: a stated ticket · owner, bucket or scope words.",
+                                          "title": "Sublabel"
                                         },
                                         "tags": {
                                           "anyOf": [
                                             {
                                               "items": {
-                                                "type": "string",
                                                 "maxLength": 80,
-                                                "minLength": 1
+                                                "minLength": 1,
+                                                "type": "string"
                                               },
-                                              "type": "array",
-                                              "maxItems": 6
+                                              "maxItems": 6,
+                                              "type": "array"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Tags",
-                                          "description": "Short chips such as owner, horizon, workstream, segment or stage."
+                                          "default": null,
+                                          "description": "Short chips such as owner, horizon, workstream, segment or stage.",
+                                          "title": "Tags"
                                         },
                                         "metric": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Metric",
-                                          "description": "One figure belonging to this item."
+                                          "default": null,
+                                          "description": "One figure belonging to this item.",
+                                          "title": "Metric"
                                         },
                                         "entity": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Entity",
-                                          "description": "Company or product this item is about."
+                                          "default": null,
+                                          "description": "Company or product this item is about.",
+                                          "title": "Entity"
                                         },
                                         "entityDomain": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Entitydomain",
-                                          "description": "Domain of `entity`, used to draw its logo."
+                                          "default": null,
+                                          "description": "Domain of `entity`, used to draw its logo.",
+                                          "title": "Entitydomain"
                                         },
                                         "trend": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 40
+                                              "maxLength": 40,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Trend",
-                                          "description": "`rising`, `flat` or `falling`."
+                                          "default": null,
+                                          "description": "`rising`, `flat` or `falling`.",
+                                          "title": "Trend"
                                         },
                                         "status": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 60
+                                              "maxLength": 60,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Status",
-                                          "description": "`supported`, `refuted`, `untestable`, `on-track` or `at-risk`."
+                                          "default": null,
+                                          "description": "One of `on-track`, `at-risk`, `blocked`, `waiting`, `done`, `supported`, `refuted`, `untestable`, `added`, `removed`, `changed`, `moved`.",
+                                          "title": "Status"
                                         },
                                         "delta": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 160
+                                              "maxLength": 160,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Delta",
-                                          "description": "Measured change the figure represents, e.g. `+400 bps vs FY2024`."
+                                          "default": null,
+                                          "description": "Measured change the figure represents, e.g. `+400 bps vs FY2024`.",
+                                          "title": "Delta"
                                         },
                                         "period": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 160
+                                              "maxLength": 160,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Period",
-                                          "description": "Period or basis the figure belongs to, e.g. `Q3 FY2026`."
+                                          "default": null,
+                                          "description": "Period or basis the figure belongs to, e.g. `Q3 FY2026`.",
+                                          "title": "Period"
                                         }
                                       },
-                                      "additionalProperties": false,
-                                      "type": "object",
                                       "title": "OutlineGraphicItem",
-                                      "description": "One content item inside a v8 structured graphic.\n\nMirrors the v8 writer's item contract: `h` head/label, `b` body/explanation,\n`v` value (kpi/chart datum), `s` source/role (quotes), `i` icon hint\n(direct-build), `sub` sub-bullets."
+                                      "type": "object"
                                     },
-                                    "type": "array",
-                                    "maxItems": 30
+                                    "maxItems": 30,
+                                    "type": "array"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Items",
-                                "description": "Content items in reading order."
+                                "default": null,
+                                "description": "Content items in reading order.",
+                                "title": "Items"
                               },
                               "rows": {
                                 "anyOf": [
                                   {
                                     "items": {
-                                      "type": "string",
                                       "maxLength": 2000,
-                                      "minLength": 1
+                                      "minLength": 1,
+                                      "type": "string"
                                     },
-                                    "type": "array",
-                                    "maxItems": 50
+                                    "maxItems": 50,
+                                    "type": "array"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Rows",
-                                "description": "Table rows as `|`-separated cells; the first row is the header."
+                                "default": null,
+                                "description": "Table rows as `|`-separated cells; the first row is the header.",
+                                "title": "Rows"
                               },
                               "extra": {
                                 "anyOf": [
                                   {
                                     "items": {
+                                      "additionalProperties": false,
+                                      "description": "One content item inside a structured outline graphic.\n\nFields: `h` head/label, `b` body/explanation,\n`v` value (kpi/chart datum), `s` source/role (quotes), `i` icon hint\n(direct-build), `sub` sub-bullets.",
                                       "properties": {
                                         "h": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 2000
+                                              "maxLength": 2000,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "H",
-                                          "description": "Item head: label, step name, or chart point label."
+                                          "default": null,
+                                          "description": "Item head: label, step name, or chart point label.",
+                                          "title": "H"
                                         },
                                         "b": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 5000
+                                              "maxLength": 5000,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "B",
-                                          "description": "Item body: one explanatory sentence, or the whole text of a `paragraph`."
+                                          "default": null,
+                                          "description": "Item body: one explanatory sentence, or the whole text of a `paragraph`.",
+                                          "title": "B"
                                         },
                                         "v": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "V",
-                                          "description": "Numeric value, chart datum or date marker; `multi_series_chart` items carry ` / `-separated values in series order."
+                                          "default": null,
+                                          "description": "Numeric value, chart datum or date marker; `multi_series_chart` items carry ` / `-separated values in series order.",
+                                          "title": "V"
                                         },
                                         "s": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 500
+                                              "maxLength": 500,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "S",
-                                          "description": "Source or speaker role, e.g. for quotes."
+                                          "default": null,
+                                          "description": "Source or speaker role, e.g. for quotes.",
+                                          "title": "S"
                                         },
                                         "i": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 100
+                                              "maxLength": 100,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "I",
-                                          "description": "Icon hint: a 1-3 word pictogram noun."
+                                          "default": null,
+                                          "description": "Icon hint: a 1-3 word pictogram noun.",
+                                          "title": "I"
                                         },
                                         "sub": {
                                           "anyOf": [
                                             {
                                               "items": {
-                                                "type": "string",
                                                 "maxLength": 2000,
-                                                "minLength": 1
+                                                "minLength": 1,
+                                                "type": "string"
                                               },
-                                              "type": "array",
-                                              "maxItems": 20
+                                              "maxItems": 20,
+                                              "type": "array"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Sub",
-                                          "description": "Sub-bullets under this item."
+                                          "default": null,
+                                          "description": "Sub-bullets under this item.",
+                                          "title": "Sub"
+                                        },
+                                        "sublabel": {
+                                          "anyOf": [
+                                            {
+                                              "maxLength": 40,
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ],
+                                          "default": null,
+                                          "description": "Secondary line under the name: a stated ticket · owner, bucket or scope words.",
+                                          "title": "Sublabel"
                                         },
                                         "tags": {
                                           "anyOf": [
                                             {
                                               "items": {
-                                                "type": "string",
                                                 "maxLength": 80,
-                                                "minLength": 1
+                                                "minLength": 1,
+                                                "type": "string"
                                               },
-                                              "type": "array",
-                                              "maxItems": 6
+                                              "maxItems": 6,
+                                              "type": "array"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Tags",
-                                          "description": "Short chips such as owner, horizon, workstream, segment or stage."
+                                          "default": null,
+                                          "description": "Short chips such as owner, horizon, workstream, segment or stage.",
+                                          "title": "Tags"
                                         },
                                         "metric": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Metric",
-                                          "description": "One figure belonging to this item."
+                                          "default": null,
+                                          "description": "One figure belonging to this item.",
+                                          "title": "Metric"
                                         },
                                         "entity": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Entity",
-                                          "description": "Company or product this item is about."
+                                          "default": null,
+                                          "description": "Company or product this item is about.",
+                                          "title": "Entity"
                                         },
                                         "entityDomain": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 200
+                                              "maxLength": 200,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Entitydomain",
-                                          "description": "Domain of `entity`, used to draw its logo."
+                                          "default": null,
+                                          "description": "Domain of `entity`, used to draw its logo.",
+                                          "title": "Entitydomain"
                                         },
                                         "trend": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 40
+                                              "maxLength": 40,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Trend",
-                                          "description": "`rising`, `flat` or `falling`."
+                                          "default": null,
+                                          "description": "`rising`, `flat` or `falling`.",
+                                          "title": "Trend"
                                         },
                                         "status": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 60
+                                              "maxLength": 60,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Status",
-                                          "description": "`supported`, `refuted`, `untestable`, `on-track` or `at-risk`."
+                                          "default": null,
+                                          "description": "One of `on-track`, `at-risk`, `blocked`, `waiting`, `done`, `supported`, `refuted`, `untestable`, `added`, `removed`, `changed`, `moved`.",
+                                          "title": "Status"
                                         },
                                         "delta": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 160
+                                              "maxLength": 160,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Delta",
-                                          "description": "Measured change the figure represents, e.g. `+400 bps vs FY2024`."
+                                          "default": null,
+                                          "description": "Measured change the figure represents, e.g. `+400 bps vs FY2024`.",
+                                          "title": "Delta"
                                         },
                                         "period": {
                                           "anyOf": [
                                             {
-                                              "type": "string",
-                                              "maxLength": 160
+                                              "maxLength": 160,
+                                              "type": "string"
                                             },
                                             {
                                               "type": "null"
                                             }
                                           ],
-                                          "title": "Period",
-                                          "description": "Period or basis the figure belongs to, e.g. `Q3 FY2026`."
+                                          "default": null,
+                                          "description": "Period or basis the figure belongs to, e.g. `Q3 FY2026`.",
+                                          "title": "Period"
                                         }
                                       },
-                                      "additionalProperties": false,
-                                      "type": "object",
                                       "title": "OutlineGraphicItem",
-                                      "description": "One content item inside a v8 structured graphic.\n\nMirrors the v8 writer's item contract: `h` head/label, `b` body/explanation,\n`v` value (kpi/chart datum), `s` source/role (quotes), `i` icon hint\n(direct-build), `sub` sub-bullets."
+                                      "type": "object"
                                     },
-                                    "type": "array",
-                                    "maxItems": 4
+                                    "maxItems": 4,
+                                    "type": "array"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Extra",
-                                "description": "Reserve items, shown only to fill spare slots in the chosen layout."
+                                "default": null,
+                                "description": "Reserve items, shown only to fill spare slots in the chosen layout.",
+                                "title": "Extra"
                               },
                               "callout": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 300
+                                    "maxLength": 300,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Callout",
-                                "description": "Annotation drawn on the exhibit: the delta or outlier to read."
+                                "default": null,
+                                "description": "Annotation drawn on the exhibit: the delta or outlier to read.",
+                                "title": "Callout"
                               },
                               "stamp": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 40
+                                    "maxLength": 40,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Stamp",
-                                "description": "`ILLUSTRATIVE`, `PRELIMINARY`, `DRAFT` or `INDICATIVE` for modelled or soft figures."
+                                "default": null,
+                                "description": "`ILLUSTRATIVE`, `PRELIMINARY`, `DRAFT` or `INDICATIVE` for modelled or soft figures.",
+                                "title": "Stamp"
                               },
                               "footnote": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 600
+                                    "maxLength": 600,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Footnote",
-                                "description": "Definition, period basis, or arithmetic behind a figure."
+                                "default": null,
+                                "description": "Definition, period basis, or arithmetic behind a figure.",
+                                "title": "Footnote"
                               },
                               "ref": {
                                 "anyOf": [
                                   {
+                                    "additionalProperties": false,
+                                    "description": "A benchmark/target line a chart should show (`<ref label v/>`).",
                                     "properties": {
                                       "label": {
                                         "anyOf": [
                                           {
-                                            "type": "string",
-                                            "maxLength": 120
+                                            "maxLength": 120,
+                                            "type": "string"
                                           },
                                           {
                                             "type": "null"
                                           }
                                         ],
-                                        "title": "Label",
-                                        "description": "Line label, e.g. `Benchmark`."
+                                        "default": null,
+                                        "description": "Line label, e.g. `Benchmark`.",
+                                        "title": "Label"
                                       },
                                       "v": {
                                         "anyOf": [
                                           {
-                                            "type": "string",
-                                            "maxLength": 80
+                                            "maxLength": 80,
+                                            "type": "string"
                                           },
                                           {
                                             "type": "null"
                                           }
                                         ],
-                                        "title": "V",
-                                        "description": "Line value, e.g. `4%`."
+                                        "default": null,
+                                        "description": "Line value, e.g. `4%`.",
+                                        "title": "V"
                                       }
                                     },
-                                    "additionalProperties": false,
-                                    "type": "object",
                                     "title": "OutlineRef",
-                                    "description": "A benchmark/target line a chart should show (`<ref label v/>`)."
+                                    "type": "object"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
+                                "default": null,
                                 "description": "Target or benchmark line the chart should show."
                               },
                               "highlight": {
                                 "anyOf": [
                                   {
+                                    "additionalProperties": false,
+                                    "description": "The one element of a graphic the heading rests on (`<highlight kind at>why</highlight>`).",
                                     "properties": {
                                       "kind": {
                                         "anyOf": [
                                           {
-                                            "type": "string",
-                                            "maxLength": 20
+                                            "maxLength": 20,
+                                            "type": "string"
                                           },
                                           {
                                             "type": "null"
                                           }
                                         ],
-                                        "title": "Kind",
-                                        "description": "`row`, `column`, `cell`, `point` or `node`."
+                                        "default": null,
+                                        "description": "`row`, `column`, `cell`, `point` or `node`.",
+                                        "title": "Kind"
                                       },
                                       "at": {
                                         "anyOf": [
                                           {
-                                            "type": "string",
-                                            "maxLength": 200
+                                            "maxLength": 200,
+                                            "type": "string"
                                           },
                                           {
                                             "type": "null"
                                           }
                                         ],
-                                        "title": "At",
-                                        "description": "Which element: 1-based table row below the header, column header, `row,column`, or a chart point's / node's `h` label."
+                                        "default": null,
+                                        "description": "Which element: 1-based table row below the header, column header, `row,column`, or a chart point's / node's `h` label.",
+                                        "title": "At"
                                       },
                                       "text": {
                                         "anyOf": [
                                           {
-                                            "type": "string",
-                                            "maxLength": 300
+                                            "maxLength": 300,
+                                            "type": "string"
                                           },
                                           {
                                             "type": "null"
                                           }
                                         ],
-                                        "title": "Text",
-                                        "description": "Why this element matters, in a few words."
+                                        "default": null,
+                                        "description": "Why this element matters, in a few words.",
+                                        "title": "Text"
                                       }
                                     },
-                                    "additionalProperties": false,
-                                    "type": "object",
                                     "title": "OutlineHighlight",
-                                    "description": "The one element of a graphic the heading rests on (`<highlight kind at>why</highlight>`)."
+                                    "type": "object"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
+                                "default": null,
                                 "description": "The one element the slide heading's claim rests on."
                               }
                             },
-                            "additionalProperties": false,
-                            "type": "object",
                             "required": [
                               "type"
                             ],
                             "title": "OutlineGraphic",
-                            "description": "One typed body graphic on a v8 outline slide.\n\n`type` may carry a subtype suffix (e.g. ``diagram:process``). Tables use\n`rows` (pipe-separated cells, first row = headers) instead of `items`."
+                            "type": "object"
                           },
-                          "type": "array",
-                          "maxItems": 10
+                          "maxItems": 10,
+                          "type": "array"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Graphics",
-                      "description": "Structured body graphics in reading order; omitted on cover and section break slides."
+                      "default": null,
+                      "description": "Structured body graphics in reading order; omitted on cover and section break slides.",
+                      "title": "Graphics"
                     },
                     "imageQuery": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 1000
+                          "maxLength": 1000,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Imagequery",
-                      "description": "Stock-photo search caption describing what the photo shows."
+                      "default": null,
+                      "description": "Stock-photo search caption describing what the photo shows.",
+                      "title": "Imagequery"
                     },
                     "sources": {
                       "anyOf": [
                         {
                           "items": {
+                            "additionalProperties": false,
+                            "description": "One slide-level source chip (`<sources><s domain url>Publisher, period</s></sources>`).",
                             "properties": {
                               "domain": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 200
+                                    "maxLength": 200,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Domain",
-                                "description": "Publisher domain."
+                                "default": null,
+                                "description": "Publisher domain.",
+                                "title": "Domain"
                               },
                               "text": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 300
+                                    "maxLength": 300,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Text",
-                                "description": "Publisher and period, e.g. `Acme, Q3 2025`."
+                                "default": null,
+                                "description": "Publisher and period, e.g. `Presentations.AI, Q3 2025`.",
+                                "title": "Text"
                               },
                               "url": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 2000
+                                    "maxLength": 2000,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
-                                "title": "Url",
-                                "description": "Citation URL; absent when there is none."
+                                "default": null,
+                                "description": "Citation URL; absent when there is none.",
+                                "title": "Url"
                               }
                             },
-                            "additionalProperties": false,
-                            "type": "object",
                             "title": "OutlineSource",
-                            "description": "One slide-level source chip (`<sources><s domain url>Publisher, period</s></sources>`)."
+                            "type": "object"
                           },
-                          "type": "array",
-                          "maxItems": 8
+                          "maxItems": 8,
+                          "type": "array"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Sources",
-                      "description": "Publishers of this slide's figures."
+                      "default": null,
+                      "description": "Publishers of this slide's figures.",
+                      "title": "Sources"
                     },
                     "confidence": {
                       "anyOf": [
                         {
-                          "type": "string",
-                          "maxLength": 20
+                          "maxLength": 20,
+                          "type": "string"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Confidence",
-                      "description": "`high`, `medium` or `low`: how firmly the slide's figures are sourced."
+                      "default": null,
+                      "description": "`high`, `medium` or `low`: how firmly the slide's figures are sourced.",
+                      "title": "Confidence"
                     },
                     "knowledge": {
                       "anyOf": [
                         {
                           "items": {
+                            "additionalProperties": false,
+                            "description": "One figure the writer stated from its OWN knowledge, with the source it names for it.\n\nNot from the research and not from the user's text:\n`<knowledge><k source=\"Publisher, document, year\">figure — what it measures</k></knowledge>`.",
                             "properties": {
                               "text": {
-                                "type": "string",
                                 "maxLength": 300,
                                 "minLength": 1,
-                                "title": "Text"
+                                "title": "Text",
+                                "type": "string"
                               },
                               "source": {
                                 "anyOf": [
                                   {
-                                    "type": "string",
-                                    "maxLength": 300
+                                    "maxLength": 300,
+                                    "type": "string"
                                   },
                                   {
                                     "type": "null"
                                   }
                                 ],
+                                "default": null,
                                 "title": "Source"
                               }
                             },
-                            "additionalProperties": false,
-                            "type": "object",
                             "required": [
                               "text"
                             ],
                             "title": "OutlineKnowledgeFact",
-                            "description": "One figure the writer stated from its OWN knowledge, with the source it names for it.\n\nNot from the research and not from the user's text:\n`<knowledge><k source=\"Publisher, document, year\">figure — what it measures</k></knowledge>`."
+                            "type": "object"
                           },
-                          "type": "array",
-                          "maxItems": 20
+                          "maxItems": 20,
+                          "type": "array"
                         },
                         {
                           "type": "null"
                         }
                       ],
-                      "title": "Knowledge",
-                      "description": "Figures stated from the writer's own knowledge, with the source it names."
+                      "default": null,
+                      "description": "Figures stated from the writer's own knowledge, with the source it names.",
+                      "title": "Knowledge"
                     }
                   },
-                  "additionalProperties": false,
-                  "type": "object",
                   "required": [
                     "heading"
                   ],
                   "title": "PresentationOutlineSlide",
-                  "description": "One validated slide in a generated or caller-authored outline."
+                  "type": "object"
                 },
-                "type": "array",
                 "maxItems": 200,
                 "minItems": 1,
                 "title": "Slides",
-                "description": "Slides in presentation order."
+                "type": "array"
               }
             },
-            "additionalProperties": false,
-            "type": "object",
             "required": [
               "slides"
             ],
-            "title": "PresentationOutline",
-            "description": "Generated outline; edit it and pass it as `outline` to `POST /decks`."
+            "title": "MCPOutline",
+            "type": "object"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "outline"
         ],
-        "title": "CreateOutlineResponse",
-        "description": "Completed stateless outline generation.",
-        "x-fastmcp-top-level-schema": "CreateOutlineResponse"
+        "description": "`create_outline`'s result.",
+        "title": "MCPOutlineResult"
       },
       "annotations": {
+        "title": "Draft outline",
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": false,
