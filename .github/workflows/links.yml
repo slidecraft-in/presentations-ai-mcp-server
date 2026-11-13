@@ -28,7 +28,7 @@ jobs:
           args: >-
             --no-progress
             --exclude '^https://(chatgpt\.com|claude\.ai)'
-            --exclude '^https://(insiders\.)?vscode\.dev/redirect/'
+            --exclude '^https://vscode\.dev/redirect'
             --exclude '^https://vs-open\.link/'
             --exclude '^https://api\.presentations\.ai/mcp$'
             './**/*.md'

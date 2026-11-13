@@ -1,7 +1,7 @@
 # Connect from VS Code (GitHub Copilot agent mode)
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://vscode.dev/redirect/mcp/install?name=presentations-ai&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D)
-[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_server-24bfa5)](https://insiders.vscode.dev/redirect/mcp/install?name=presentations-ai&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D&quality=insiders)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522presentations-ai%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fapi.presentations.ai%252Fmcp%2522%257D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_server-24bfa5)](https://vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522presentations-ai%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fapi.presentations.ai%252Fmcp%2522%257D)
 
 Or add it by hand to your workspace's `.vscode/mcp.json` or your user-level `mcp.json`:
 
