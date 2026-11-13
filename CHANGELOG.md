@@ -2,6 +2,10 @@
 
 Changes to the hosted server's tools and to this repo, newest first.
 
+## Unreleased
+
+- New tool `send_feedback`: sends a note the user approved to the Presentations.AI team.
+
 ## 1.1.0 - 2026-11-03
 
 - Docs match the hosted server: OAuth 2.1 with PKCE and dynamic client registration, or an
