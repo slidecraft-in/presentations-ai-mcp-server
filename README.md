@@ -137,7 +137,7 @@ the REST API's own message instead.
 | Message | Meaning | What to do |
 |---|---|---|
 | `unauthenticated` | The account lost access during the call. | Sign in again, or use an active key. Retrying unchanged won't help. |
-| `forbidden: the token's scopes do not permit this` | The connection's scopes don't cover the tool. | Reconnect with the scopes it needs. |
+| `forbidden: the token's scopes do not permit this` | The account's access to that deck or project doesn't allow the action (for example, view-only access), or the connection is limited to another project. | Ask the deck's owner or a workspace admin for access, or work in the project the connection is limited to. |
 | `this feature is not available on the workspace's plan` | The plan doesn't include the feature. | Change plan. |
 | `insufficient credits to generate a deck` | The credit balance is 0 or below. | Add credits. `whoami` shows the balance. |
 | `attached files are still being processed; retry shortly` | Sources aren't ready yet. | Retry after a short wait. |
