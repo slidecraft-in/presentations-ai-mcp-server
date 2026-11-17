@@ -163,8 +163,8 @@ credits per slide, and a deck built from it bills its slides again. A deck costs
 10 (the default), or 20 credits by quality tier (`budget_tier` `lite`, `standard`, or
 `premium`). `deep_search` doubles that, and a PowerPoint export adds 5 per slide on plans that
 don't include it. Credits stop a request only when the balance is already 0 or below, so a
-large deck can take the balance below zero: `whoami` shows the plan and balance. API plans:
-[presentations.ai/solutions/api](https://www.presentations.ai/solutions/api).
+large deck can take the balance below zero: `whoami` shows the plan and balance. Plans and
+prices: [docs.presentations.ai/docs/pricing](https://docs.presentations.ai/docs/pricing).
 
 ## Data and security
 
