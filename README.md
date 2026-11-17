@@ -155,6 +155,9 @@ are in the [API reference](https://docs.presentations.ai/docs/api#errors-and-asy
 
 ## Pricing
 
+Free to start: 200 credits when you sign up (400 with a work email), valid for 30 days; no
+card needed.
+
 Only `create_presentation` and `create_outline` spend workspace credits. An outline costs 10
 credits per slide, and a deck built from it bills its slides again. A deck costs, per slide, 5,
 10 (the default), or 20 credits by quality tier (`budget_tier` `lite`, `standard`, or
