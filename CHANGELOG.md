@@ -4,6 +4,7 @@ Changes to the hosted server's tools and to this repo, newest first.
 
 ## Unreleased
 
+- The README says which account the server needs: Presentations.AI for Business.
 - Pricing states the free start: 200 credits when you sign up (400 with a work email), valid
   for 30 days; no card needed.
 - New tool `send_feedback`: sends a note the user approved to the Presentations.AI team.

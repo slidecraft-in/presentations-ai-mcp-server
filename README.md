@@ -28,8 +28,9 @@ https://api.presentations.ai/mcp
 | Transport | Streamable HTTP |
 | Authentication | OAuth 2.1 with PKCE and dynamic client registration, or an API key |
 
-A Presentations.AI account is required. Most clients open a browser to sign in the first
-time they connect. Clients without OAuth support can send an API key instead:
+A Presentations.AI for Business account is required (sign up at
+[api.presentations.ai](https://api.presentations.ai)). Most clients open a browser to sign
+in the first time they connect. Clients without OAuth support can send an API key instead:
 
 ```
 Authorization: Bearer pai_live_...
