@@ -3,12 +3,14 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/slidecraft-in/presentations-ai-mcp-server/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/slidecraft-in/presentations-ai-mcp-server/actions/workflows/ci.yml)
 [![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%2Fai.presentations%252Fpresentations-ai%2Fversions%2Flatest&query=%24.server.version&label=MCP%20Registry&logo=modelcontextprotocol)](https://registry.modelcontextprotocol.io/?q=ai.presentations%2Fpresentations-ai)
 [![Presentations.AI MCP connector](https://glama.ai/mcp/connectors/ai.presentations/presentations-ai/badges/score.svg)](https://glama.ai/mcp/connectors/ai.presentations/presentations-ai)
+[![Awesome MCP Servers](https://img.shields.io/badge/Awesome_MCP_Servers-Listed-FC60A8)](https://github.com/punkpeye/awesome-mcp-servers)
 [![License](https://img.shields.io/github/license/slidecraft-in/presentations-ai-mcp-server?label=License)](LICENSE)
 
 Official Model Context Protocol server for [Presentations.AI](https://www.presentations.ai).
 Create designed slide decks from a topic or your notes, apply your brand, then share or
 download them, from any MCP client.
 
+[![Install in ChatGPT](https://img.shields.io/badge/ChatGPT-Install_plugin-10A37F)](https://chatgpt.com/plugins/plugin_asdk_app_6a0c45498a2081918ddff7597086fa59)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522presentations-ai%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fapi.presentations.ai%252Fmcp%2522%257D)
 [![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_server-24bfa5)](https://vscode.dev/redirect?url=vscode-insiders%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522presentations-ai%2522%252C%2522type%2522%253A%2522http%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fapi.presentations.ai%252Fmcp%2522%257D)
 [![Install in Visual Studio](https://img.shields.io/badge/Visual_Studio-Install_server-C16FDE)](https://vs-open.link/mcp-install?%7B%22name%22%3A%22presentations-ai%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapi.presentations.ai%2Fmcp%22%7D)
