@@ -2,6 +2,7 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/slidecraft-in/presentations-ai-mcp-server/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/slidecraft-in/presentations-ai-mcp-server/actions/workflows/ci.yml)
 [![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%2Fai.presentations%252Fpresentations-ai%2Fversions%2Flatest&query=%24.server.version&label=MCP%20Registry&logo=modelcontextprotocol)](https://registry.modelcontextprotocol.io/?q=ai.presentations%2Fpresentations-ai)
+[![Presentations.AI MCP connector](https://glama.ai/mcp/connectors/ai.presentations/presentations-ai/badges/score.svg)](https://glama.ai/mcp/connectors/ai.presentations/presentations-ai)
 [![License](https://img.shields.io/github/license/slidecraft-in/presentations-ai-mcp-server?label=License)](LICENSE)
 
 Official Model Context Protocol server for [Presentations.AI](https://www.presentations.ai).
