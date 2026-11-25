@@ -13,6 +13,8 @@ Changes to the hosted server's tools and to this repo, newest first.
   longer lists rate-limit numbers.
 - The VS Code and VS Code Insiders buttons open VS Code's `mcp/install` link through the
   vscode.dev redirect.
+- An Install in ChatGPT button and setup steps for the Presentations.AI plugin in ChatGPT;
+  Glama and Awesome MCP Servers badges.
 
 ## 1.1.0 - 2026-11-03
 

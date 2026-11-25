@@ -1,5 +1,10 @@
 # Connect from ChatGPT
 
+Open [Presentations.AI in ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6a0c45498a2081918ddff7597086fa59), select **Install plugin**, and sign in to
+Presentations.AI when asked.
+
+## Add it as a custom MCP server
+
 1. Open [ChatGPT Plugins](https://chatgpt.com/plugins).
 2. Select **+**, then **Add custom MCP server**.
 3. Enter a name (`Presentations.AI`) and a short description.
